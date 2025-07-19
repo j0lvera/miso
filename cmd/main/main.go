@@ -66,7 +66,22 @@ func (r *ReviewCmd) Run() error {
 		return fmt.Errorf("review failed: %w", err)
 	}
 
-	fmt.Println(result)
+	fmt.Println(result.Content)
+	
+	// Display token usage and cost if available
+	if result.TokensUsed > 0 {
+		fmt.Printf("\n---\n")
+		fmt.Printf("Tokens used: %d", result.TokensUsed)
+		if result.InputTokens > 0 || result.OutputTokens > 0 {
+			fmt.Printf(" (input: %d, output: %d)", result.InputTokens, result.OutputTokens)
+		}
+		fmt.Println()
+		
+		if result.Cost > 0 {
+			fmt.Printf("Cost: $%.4f\n", result.Cost)
+		}
+	}
+	
 	return nil
 }
 

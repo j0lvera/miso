@@ -1,0 +1,16 @@
+version: 3
+
+tasks:
+  ai:sonnet-4:
+    desc: Run AI assistant
+    cmds:
+      - aider --model openrouter/anthropic/claude-sonnet-4
+      -
+  ai:opus-4:
+    desc: Run AI assistant
+    cmds:
+      - aider --model openrouter/anthropic/opus-4
+
+  run:
+    cmds:
+      - go run cmd/main/main.go

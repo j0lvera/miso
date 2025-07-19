@@ -9,7 +9,7 @@ tasks:
   ai:opus-4:
     desc: Run AI assistant
     cmds:
-      - aider --model openrouter/anthropic/opus-4
+      - aider --model openrouter/anthropic/claude-opus-4
 
   run:
     cmds:

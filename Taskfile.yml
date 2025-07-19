@@ -14,3 +14,7 @@ tasks:
   run:
     cmds:
       - go run cmd/main/main.go
+
+  build:
+    cmds:
+      - go build -o ~/.bin/review cmd/main/main.go

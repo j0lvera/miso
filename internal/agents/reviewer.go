@@ -3,6 +3,7 @@ package agents
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/j0lvera/go-review/internal/prompts"
 	"github.com/tmc/langchaingo/llms"
@@ -16,9 +17,20 @@ type CodeReviewer struct {
 
 // NewCodeReviewer creates a new CodeReviewer instance.
 func NewCodeReviewer() (*CodeReviewer, error) {
-	llm, err := openai.New()
+	// Get API key from environment
+	apiKey := os.Getenv("OPENROUTER_API_KEY")
+	if apiKey == "" {
+		return nil, fmt.Errorf("OPENROUTER_API_KEY environment variable is not set")
+	}
+
+	// Configure for OpenRouter
+	llm, err := openai.New(
+		openai.WithToken(apiKey),
+		openai.WithBaseURL("https://openrouter.ai/api/v1"),
+		openai.WithModel("anthropic/claude-3.5-sonnet"),
+	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize OpenAI client: %w", err)
+		return nil, fmt.Errorf("failed to initialize OpenRouter client: %w", err)
 	}
 
 	return &CodeReviewer{
@@ -36,7 +48,9 @@ func (cr *CodeReviewer) Review(code string, filename string) (string, error) {
 
 	// Call the LLM
 	ctx := context.Background()
-	response, err := cr.llm.Call(ctx, prompt)
+	response, err := cr.llm.Call(ctx, prompt,
+		llms.WithTemperature(0.3), // Lower temperature for more consistent reviews
+	)
 	if err != nil {
 		return "", fmt.Errorf("LLM call failed: %w", err)
 	}

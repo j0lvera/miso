@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/alecthomas/kong"
+	"github.com/briandowns/spinner"
 	"github.com/j0lvera/go-review/internal/agents"
 )
 
@@ -48,8 +50,17 @@ func (r *ReviewCmd) Run() error {
 	// Get just the filename for the review
 	filename := filepath.Base(r.File)
 
+	// Create and start spinner
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	s.Suffix = " Thinking..."
+	s.Start()
+
 	// Perform review
 	result, err := reviewer.Review(string(content), filename)
+	
+	// Stop spinner
+	s.Stop()
+	
 	if err != nil {
 		return fmt.Errorf("review failed: %w", err)
 	}

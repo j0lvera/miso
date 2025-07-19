@@ -21,6 +21,7 @@ type CLI struct {
 type ReviewCmd struct {
 	File    string `arg:"" required:"" help:"Path to the file to review" type:"existingfile"`
 	Verbose bool   `short:"v" help:"Enable verbose output"`
+	Message string `short:"m" help:"Message to display while processing" default:"Thinking..."`
 }
 
 type VersionCmd struct{}
@@ -52,7 +53,7 @@ func (r *ReviewCmd) Run() error {
 
 	// Create and start spinner
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-	s.Suffix = " Thinking..."
+	s.Suffix = " " + r.Message
 	s.Start()
 
 	// Perform review

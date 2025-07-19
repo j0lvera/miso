@@ -68,18 +68,19 @@ func (r *ReviewCmd) Run() error {
 
 	fmt.Println(result.Content)
 	
-	// Display token usage and cost if available
+	// Display token usage if available
 	if result.TokensUsed > 0 {
 		fmt.Printf("\n---\n")
-		fmt.Printf("Tokens used: %d", result.TokensUsed)
-		if result.InputTokens > 0 || result.OutputTokens > 0 {
-			fmt.Printf(" (input: %d, output: %d)", result.InputTokens, result.OutputTokens)
-		}
-		fmt.Println()
-		
-		if result.Cost > 0 {
-			fmt.Printf("Cost: $%.4f\n", result.Cost)
-		}
+		fmt.Printf("Tokens used: %d (input: %d, output: %d)\n", 
+			result.TokensUsed, result.InputTokens, result.OutputTokens)
+	}
+	
+	// Debug info at the very end
+	if os.Getenv("DEBUG") == "true" {
+		fmt.Printf("\n[DEBUG] Token extraction details:\n")
+		fmt.Printf("  Total tokens: %d\n", result.TokensUsed)
+		fmt.Printf("  Input tokens: %d\n", result.InputTokens)
+		fmt.Printf("  Output tokens: %d\n", result.OutputTokens)
 	}
 	
 	return nil

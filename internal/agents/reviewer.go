@@ -79,24 +79,32 @@ func (cr *CodeReviewer) Review(code string, filename string) (*ReviewResult, err
 		Content: content,
 	}
 
-	// Check if usage information is available
-	if resp.Usage != nil {
-		result.InputTokens = resp.Usage.PromptTokens
-		result.OutputTokens = resp.Usage.CompletionTokens
-		result.TokensUsed = resp.Usage.TotalTokens
+	// Check if usage information is available in the response
+	// Based on the debug output, OpenRouter returns these fields in GenerationInfo
+	if len(resp.Choices) > 0 && resp.Choices[0].GenerationInfo != nil {
+		genInfo := resp.Choices[0].GenerationInfo
 		
-		// OpenRouter might include cost in the response
-		if cost, ok := resp.Usage.Extensions["cost"].(float64); ok {
-			result.Cost = cost
+		// Extract the actual fields from the GenerationInfo map
+		// The values might be int or float64, so we need to handle both
+		if completionTokens, ok := genInfo["CompletionTokens"].(int); ok {
+			result.OutputTokens = completionTokens
+		} else if completionTokens, ok := genInfo["CompletionTokens"].(float64); ok {
+			result.OutputTokens = int(completionTokens)
 		}
-	}
-
-	// Debug logging if enabled
-	if os.Getenv("DEBUG") == "true" {
-		fmt.Printf("Full LLM Response: %+v\n", resp)
-		if resp.Usage != nil {
-			fmt.Printf("Usage Details: %+v\n", resp.Usage)
+		
+		if promptTokens, ok := genInfo["PromptTokens"].(int); ok {
+			result.InputTokens = promptTokens
+		} else if promptTokens, ok := genInfo["PromptTokens"].(float64); ok {
+			result.InputTokens = int(promptTokens)
 		}
+		
+		if totalTokens, ok := genInfo["TotalTokens"].(int); ok {
+			result.TokensUsed = totalTokens
+		} else if totalTokens, ok := genInfo["TotalTokens"].(float64); ok {
+			result.TokensUsed = int(totalTokens)
+		}
+		
+		// Don't print debug here - we'll do it after the review content
 	}
 
 	return result, nil

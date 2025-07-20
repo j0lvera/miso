@@ -1,9 +1,5 @@
 # miso 
 
-An AI-powered code review tool that provides intelligent feedback on your code using Claude via OpenRouter. The tool is designed to be model-agnostic and can work with any OpenAI-compatible API through OpenRouter.
-
-## What it does
-
 `miso` analyzes your code and provides constructive feedback based on file-specific guidelines. It supports:
 
 - **Single file review**: Review individual code files with AI-powered insights

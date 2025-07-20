@@ -1,6 +1,6 @@
 # Release Checklist
 
-This checklist outlines the steps to create a new release for `go-review`.
+This checklist outlines the steps to create a new release for `miso`.
 
 ## 1. Preparation
 

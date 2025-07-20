@@ -1,10 +1,10 @@
 # Performance Optimization Guide
 
-This guide explains the different content scanning strategies available in go-review and how to optimize performance for different file sizes and project structures.
+This guide explains the different content scanning strategies available in miso and how to optimize performance for different file sizes and project structures.
 
 ## Content Scanning Strategies
 
-go-review supports three content scanning strategies to balance review quality with performance:
+miso supports three content scanning strategies to balance review quality with performance:
 
 ### 1. First Lines Strategy (`first_lines`)
 
@@ -232,10 +232,10 @@ Test your configuration performance:
 
 ```bash
 # Time pattern matching
-time go-review test-pattern large-file.go -v
+time miso test-pattern large-file.go -v
 
 # Profile full reviews
-time go-review review large-file.go --dry-run
+time miso review large-file.go --dry-run
 ```
 
 ### Performance Metrics

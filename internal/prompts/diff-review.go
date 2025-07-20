@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/j0lvera/go-review/internal/config"
-	"github.com/j0lvera/go-review/internal/git"
-	"github.com/j0lvera/go-review/internal/resolver"
+	"github.com/j0lvera/miso/internal/config"
+	"github.com/j0lvera/miso/internal/git"
+	"github.com/j0lvera/miso/internal/resolver"
 	"github.com/tmc/langchaingo/prompts"
 )
 
-func DiffReview(cfg *config.Config, diffData *git.DiffData, filename string) (string, error) {
+func DiffReview(
+	cfg *config.Config, diffData *git.DiffData, filename string,
+) (string, error) {
 	// Use resolver to get diff-specific guides
 	res := resolver.NewResolver(cfg)
 	guides, err := res.GetDiffGuides(filename)
@@ -37,7 +39,11 @@ func DiffReview(cfg *config.Config, diffData *git.DiffData, filename string) (st
 	if len(guideContent) > 0 {
 		combinedGuides.WriteString("\n\n**Architecture Guides:**\n")
 		for guideName, content := range guideContent {
-			combinedGuides.WriteString(fmt.Sprintf("\n=== %s ===\n%s\n", guideName, content))
+			combinedGuides.WriteString(
+				fmt.Sprintf(
+					"\n=== %s ===\n%s\n", guideName, content,
+				),
+			)
 		}
 	}
 
@@ -47,9 +53,11 @@ func DiffReview(cfg *config.Config, diffData *git.DiffData, filename string) (st
 	// Analyze the changes
 	addedLines := diffData.GetAddedLines()
 	removedLines := diffData.GetRemovedLines()
-	
-	changesSummary := fmt.Sprintf("Changes Summary:\n- Added lines: %d\n- Removed lines: %d\n- Total hunks: %d", 
-		len(addedLines), len(removedLines), len(diffData.Hunks))
+
+	changesSummary := fmt.Sprintf(
+		"Changes Summary:\n- Added lines: %d\n- Removed lines: %d\n- Total hunks: %d",
+		len(addedLines), len(removedLines), len(diffData.Hunks),
+	)
 
 	template := prompts.NewPromptTemplate(
 		`You are an expert code reviewer analyzing specific changes in a pull request. Focus on reviewing ONLY the changes shown in the diff, not the entire file.

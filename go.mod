@@ -1,4 +1,4 @@
-module github.com/j0lvera/go-review
+module github.com/j0lvera/miso
 
 go 1.24.2
 

@@ -1,10 +1,10 @@
-# go-review
+# miso 
 
 An AI-powered code review tool that provides intelligent feedback on your code using Claude via OpenRouter. The tool is designed to be model-agnostic and can work with any OpenAI-compatible API through OpenRouter.
 
 ## What it does
 
-`go-review` analyzes your code and provides constructive feedback based on file-specific guidelines. It supports:
+`miso` analyzes your code and provides constructive feedback based on file-specific guidelines. It supports:
 
 - **Single file review**: Review individual code files with AI-powered insights
 - **Git diff review**: Analyze changes between git commits or branches
@@ -23,7 +23,7 @@ export OPENROUTER_API_KEY=your-api-key-here
 
 #### Review a single file
 ```bash
-go-review review path/to/file.tsx
+miso review path/to/file.tsx
 ```
 
 Options:
@@ -33,13 +33,13 @@ Options:
 #### Review git changes
 ```bash
 # Review changes in the last commit
-go-review diff
+miso diff
 
 # Review changes between commits
-go-review diff HEAD~3
+miso diff HEAD~3
 
 # Review changes between branches
-go-review diff main..feature-branch
+miso diff main..feature-branch
 ```
 
 Options:
@@ -48,16 +48,16 @@ Options:
 
 #### Show version
 ```bash
-go-review version
+miso version
 ```
 
 ## Configuration
 
-`go-review` uses pattern-based configuration to determine which files to review and which guidelines to apply. You can configure it using a `go-review.yml` file in your repository root or embed the configuration in GitHub Actions.
+`miso` uses pattern-based configuration to determine which files to review and which guidelines to apply. You can configure it using a `miso.yml` file in your repository root or embed the configuration in GitHub Actions.
 
 ### Configuration File
 
-Create a `go-review.yml` file in your repository root:
+Create a `miso.yml` file in your repository root:
 
 ```yaml
 # Global defaults for content scanning
@@ -146,7 +146,7 @@ Patterns are evaluated **additively** with optional **stop flags**:
 
 ### GitHub Actions Integration
 
-go-review can be easily integrated into your GitHub Actions workflows for automated code review on pull requests and pushes.
+miso can be easily integrated into your GitHub Actions workflows for automated code review on pull requests and pushes.
 
 #### Quick Setup
 
@@ -154,7 +154,7 @@ go-review can be easily integrated into your GitHub Actions workflows for automa
 
 ```bash
 mkdir -p .github/workflows
-curl -o .github/workflows/code-review.yml https://raw.githubusercontent.com/your-org/go-review/main/.github/workflows/example.yml
+curl -o .github/workflows/code-review.yml https://raw.githubusercontent.com/your-org/miso/main/.github/workflows/example.yml
 ```
 
 2. **Set up your API key**:
@@ -165,7 +165,7 @@ curl -o .github/workflows/code-review.yml https://raw.githubusercontent.com/your
 3. **Add a configuration file** (optional):
 
 ```yaml
-# go-review.yml
+# miso.yml
 content_defaults:
   strategy: "smart"
   lines: 100
@@ -199,14 +199,14 @@ jobs:
       with:
         go-version: '1.21'
     
-    - name: Install go-review
-      run: go build -o go-review cmd/main/main.go
+    - name: Install miso 
+      run: go build -o miso cmd/main/main.go
     
     - name: Review changes
       env:
         OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       run: |
-        ./go-review diff "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+        ./miso diff "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
 ```
 
 For more advanced workflows and configuration options, see the [GitHub Actions examples](.github/workflows/).

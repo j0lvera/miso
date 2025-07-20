@@ -4,8 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/j0lvera/go-review/internal/config"
-	"github.com/j0lvera/go-review/internal/matcher"
+	"github.com/j0lvera/miso/internal/config"
+	"github.com/j0lvera/miso/internal/matcher"
 )
 
 // Resolver handles guide resolution based on configuration patterns.
@@ -106,15 +106,17 @@ func (r *Resolver) hasContentPatterns() bool {
 
 // LoadGuideContent loads the content of guide files from disk.
 // Tries multiple paths for each guide and returns a map of guide name to content.
-func (r *Resolver) LoadGuideContent(guides []string) (map[string]string, error) {
+func (r *Resolver) LoadGuideContent(guides []string) (
+	map[string]string, error,
+) {
 	guideContent := make(map[string]string)
-	
+
 	for _, guide := range guides {
 		// Try multiple paths for guides
 		paths := []string{
 			filepath.Join("guides", guide),
 			filepath.Join("guides", "react", guide), // Legacy path support
-			guide, // Direct path
+			guide,                                   // Direct path
 		}
 
 		var content []byte

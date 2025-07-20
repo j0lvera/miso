@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/j0lvera/go-review/internal/config"
+	"github.com/j0lvera/miso/internal/config"
 )
 
 func TestMatchFile(t *testing.T) {
@@ -55,22 +55,30 @@ func TestMatchFile(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.filename, func(t *testing.T) {
-			matches, err := matcher.MatchFile(tt.filename)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-
-			if len(matches) != len(tt.expectedMatches) {
-				t.Errorf("expected %d matches, got %d", len(tt.expectedMatches), len(matches))
-			}
-
-			for i, match := range matches {
-				if i < len(tt.expectedMatches) && match.Name != tt.expectedMatches[i] {
-					t.Errorf("expected match %s, got %s", tt.expectedMatches[i], match.Name)
+		t.Run(
+			tt.filename, func(t *testing.T) {
+				matches, err := matcher.MatchFile(tt.filename)
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
 				}
-			}
-		})
+
+				if len(matches) != len(tt.expectedMatches) {
+					t.Errorf(
+						"expected %d matches, got %d", len(tt.expectedMatches),
+						len(matches),
+					)
+				}
+
+				for i, match := range matches {
+					if i < len(tt.expectedMatches) && match.Name != tt.expectedMatches[i] {
+						t.Errorf(
+							"expected match %s, got %s", tt.expectedMatches[i],
+							match.Name,
+						)
+					}
+				}
+			},
+		)
 	}
 }
 
@@ -124,22 +132,32 @@ func TestMatchFileContent(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			matches, err := matcher.MatchFileContent(tt.filename, []byte(tt.content))
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-
-			if len(matches) != len(tt.expectedMatches) {
-				t.Errorf("expected %d matches, got %d", len(tt.expectedMatches), len(matches))
-			}
-
-			for i, match := range matches {
-				if i < len(tt.expectedMatches) && match.Name != tt.expectedMatches[i] {
-					t.Errorf("expected match %s, got %s", tt.expectedMatches[i], match.Name)
+		t.Run(
+			tt.name, func(t *testing.T) {
+				matches, err := matcher.MatchFileContent(
+					tt.filename, []byte(tt.content),
+				)
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
 				}
-			}
-		})
+
+				if len(matches) != len(tt.expectedMatches) {
+					t.Errorf(
+						"expected %d matches, got %d", len(tt.expectedMatches),
+						len(matches),
+					)
+				}
+
+				for i, match := range matches {
+					if i < len(tt.expectedMatches) && match.Name != tt.expectedMatches[i] {
+						t.Errorf(
+							"expected match %s, got %s", tt.expectedMatches[i],
+							match.Name,
+						)
+					}
+				}
+			},
+		)
 	}
 }
 
@@ -188,7 +206,7 @@ func TestContentScanning(t *testing.T) {
 	// Create test file
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.go")
-	
+
 	content := `package main
 // Line 2
 // Line 3
@@ -202,7 +220,7 @@ import "database/sql"
 // Line 11
 // Line 12
 `
-	
+
 	err := os.WriteFile(testFile, []byte(content), 0644)
 	if err != nil {
 		t.Fatalf("failed to write test file: %v", err)
@@ -224,7 +242,7 @@ import "database/sql"
 	}
 
 	matcher := NewMatcher(cfg)
-	
+
 	// Should not match because "database/sql" is on line 6
 	matches, err := matcher.ScanFile(testFile)
 	if err != nil {
@@ -232,7 +250,10 @@ import "database/sql"
 	}
 
 	if len(matches) != 0 {
-		t.Errorf("expected no matches with first_lines strategy, got %d", len(matches))
+		t.Errorf(
+			"expected no matches with first_lines strategy, got %d",
+			len(matches),
+		)
 	}
 
 	// Now test with full_file strategy
@@ -243,6 +264,8 @@ import "database/sql"
 	}
 
 	if len(matches) != 1 {
-		t.Errorf("expected 1 match with full_file strategy, got %d", len(matches))
+		t.Errorf(
+			"expected 1 match with full_file strategy, got %d", len(matches),
+		)
 	}
 }

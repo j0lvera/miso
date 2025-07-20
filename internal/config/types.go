@@ -1,6 +1,6 @@
 package config
 
-// Config represents the complete go-review configuration structure.
+// Config represents the complete miso configuration structure.
 // It defines how files are matched and which review guides are applied.
 type Config struct {
 	ContentDefaults ContentDefaults `yaml:"content_defaults"`

@@ -19,10 +19,10 @@ type Parser struct {
 func NewParser() *Parser {
 	return &Parser{
 		configPaths: []string{
-			"go-review.yml",
-			"go-review.yaml",
-			".go-review.yml",
-			".go-review.yaml",
+			"miso.yml",
+			"miso.yaml",
+			".miso.yml",
+			".miso.yaml",
 		},
 	}
 }

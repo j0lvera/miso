@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/j0lvera/go-review/internal/config"
-	"github.com/j0lvera/go-review/internal/git"
+	"github.com/j0lvera/miso/internal/config"
+	"github.com/j0lvera/miso/internal/git"
 )
 
 func TestNewCodeReviewer(t *testing.T) {
@@ -20,29 +20,35 @@ func TestNewCodeReviewer(t *testing.T) {
 		}
 	}()
 
-	t.Run("missing API key", func(t *testing.T) {
-		os.Unsetenv("OPENROUTER_API_KEY")
-		
-		_, err := NewCodeReviewer()
-		if err == nil {
-			t.Error("Expected error when OPENROUTER_API_KEY is not set")
-		}
-		if !strings.Contains(err.Error(), "OPENROUTER_API_KEY") {
-			t.Errorf("Error should mention OPENROUTER_API_KEY, got: %v", err)
-		}
-	})
+	t.Run(
+		"missing API key", func(t *testing.T) {
+			os.Unsetenv("OPENROUTER_API_KEY")
 
-	t.Run("with API key", func(t *testing.T) {
-		os.Setenv("OPENROUTER_API_KEY", "test-key")
-		
-		reviewer, err := NewCodeReviewer()
-		if err != nil {
-			t.Errorf("Unexpected error with API key set: %v", err)
-		}
-		if reviewer == nil {
-			t.Error("Expected non-nil reviewer")
-		}
-	})
+			_, err := NewCodeReviewer()
+			if err == nil {
+				t.Error("Expected error when OPENROUTER_API_KEY is not set")
+			}
+			if !strings.Contains(err.Error(), "OPENROUTER_API_KEY") {
+				t.Errorf(
+					"Error should mention OPENROUTER_API_KEY, got: %v", err,
+				)
+			}
+		},
+	)
+
+	t.Run(
+		"with API key", func(t *testing.T) {
+			os.Setenv("OPENROUTER_API_KEY", "test-key")
+
+			reviewer, err := NewCodeReviewer()
+			if err != nil {
+				t.Errorf("Unexpected error with API key set: %v", err)
+			}
+			if reviewer == nil {
+				t.Error("Expected non-nil reviewer")
+			}
+		},
+	)
 }
 
 func TestCodeReviewer_Review(t *testing.T) {
@@ -82,23 +88,25 @@ func main() {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := reviewer.Review(cfg, tt.code, tt.filename)
+		t.Run(
+			tt.name, func(t *testing.T) {
+				result, err := reviewer.Review(cfg, tt.code, tt.filename)
 
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Review() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			
-			if err == nil {
-				if result == nil {
-					t.Error("Expected non-nil result")
+				if (err != nil) != tt.wantErr {
+					t.Errorf("Review() error = %v, wantErr %v", err, tt.wantErr)
+					return
 				}
-				if result.Content == "" {
-					t.Error("Expected non-empty content")
+
+				if err == nil {
+					if result == nil {
+						t.Error("Expected non-nil result")
+					}
+					if result.Content == "" {
+						t.Error("Expected non-empty content")
+					}
 				}
-			}
-		})
+			},
+		)
 	}
 }
 
@@ -130,9 +138,18 @@ func TestCodeReviewer_ReviewDiff(t *testing.T) {
 						NewCount: 3,
 						Header:   "@@ -1,2 +1,3 @@",
 						Lines: []git.DiffLine{
-							{Type: git.DiffLineContext, Content: "package main"},
-							{Type: git.DiffLineAdded, Content: "import \"fmt\""},
-							{Type: git.DiffLineContext, Content: "func main() {}"},
+							{
+								Type:    git.DiffLineContext,
+								Content: "package main",
+							},
+							{
+								Type:    git.DiffLineAdded,
+								Content: "import \"fmt\"",
+							},
+							{
+								Type:    git.DiffLineContext,
+								Content: "func main() {}",
+							},
 						},
 					},
 				},
@@ -152,23 +169,29 @@ func TestCodeReviewer_ReviewDiff(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := reviewer.ReviewDiff(cfg, tt.diffData, tt.filename)
+		t.Run(
+			tt.name, func(t *testing.T) {
+				result, err := reviewer.ReviewDiff(
+					cfg, tt.diffData, tt.filename,
+				)
 
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ReviewDiff() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			
-			if err == nil {
-				if result == nil {
-					t.Error("Expected non-nil result")
+				if (err != nil) != tt.wantErr {
+					t.Errorf(
+						"ReviewDiff() error = %v, wantErr %v", err, tt.wantErr,
+					)
+					return
 				}
-				if result.Content == "" {
-					t.Error("Expected non-empty content")
+
+				if err == nil {
+					if result == nil {
+						t.Error("Expected non-nil result")
+					}
+					if result.Content == "" {
+						t.Error("Expected non-empty content")
+					}
 				}
-			}
-		})
+			},
+		)
 	}
 }
 
@@ -199,20 +222,24 @@ func TestCodeReviewer_callLLM(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := reviewer.callLLM(tt.prompt)
-			
-			if (err != nil) != tt.wantErr {
-				t.Errorf("callLLM() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			
-			if err == nil {
-				if result == nil {
-					t.Error("Expected non-nil result")
+		t.Run(
+			tt.name, func(t *testing.T) {
+				result, err := reviewer.callLLM(tt.prompt)
+
+				if (err != nil) != tt.wantErr {
+					t.Errorf(
+						"callLLM() error = %v, wantErr %v", err, tt.wantErr,
+					)
+					return
 				}
-			}
-		})
+
+				if err == nil {
+					if result == nil {
+						t.Error("Expected non-nil result")
+					}
+				}
+			},
+		)
 	}
 }
 
@@ -227,21 +254,23 @@ func TestReviewResult_Structure(t *testing.T) {
 	}
 
 	if result.Content != "Test review content" {
-		t.Errorf("Expected content 'Test review content', got %s", result.Content)
+		t.Errorf(
+			"Expected content 'Test review content', got %s", result.Content,
+		)
 	}
-	
+
 	if result.TokensUsed != 100 {
 		t.Errorf("Expected 100 tokens used, got %d", result.TokensUsed)
 	}
-	
+
 	if result.InputTokens != 60 {
 		t.Errorf("Expected 60 input tokens, got %d", result.InputTokens)
 	}
-	
+
 	if result.OutputTokens != 40 {
 		t.Errorf("Expected 40 output tokens, got %d", result.OutputTokens)
 	}
-	
+
 	if result.Cost != 0.001 {
 		t.Errorf("Expected cost 0.001, got %f", result.Cost)
 	}

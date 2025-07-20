@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/j0lvera/go-review/internal/config"
+	"github.com/j0lvera/miso/internal/config"
 )
 
 func TestResolver(t *testing.T) {
@@ -59,23 +59,31 @@ func TestResolver(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Test ShouldReview
-			shouldReview := resolver.ShouldReview(tt.filename)
-			if shouldReview != tt.shouldReview {
-				t.Errorf("ShouldReview() = %v, want %v", shouldReview, tt.shouldReview)
-			}
+		t.Run(
+			tt.name, func(t *testing.T) {
+				// Test ShouldReview
+				shouldReview := resolver.ShouldReview(tt.filename)
+				if shouldReview != tt.shouldReview {
+					t.Errorf(
+						"ShouldReview() = %v, want %v", shouldReview,
+						tt.shouldReview,
+					)
+				}
 
-			// Test GetGuides
-			guides, err := resolver.GetGuides(tt.filename)
-			if err != nil {
-				t.Fatalf("GetGuides() error = %v", err)
-			}
+				// Test GetGuides
+				guides, err := resolver.GetGuides(tt.filename)
+				if err != nil {
+					t.Fatalf("GetGuides() error = %v", err)
+				}
 
-			if len(guides) != tt.expectedCount {
-				t.Errorf("GetGuides() returned %d guides, want %d", len(guides), tt.expectedCount)
-			}
-		})
+				if len(guides) != tt.expectedCount {
+					t.Errorf(
+						"GetGuides() returned %d guides, want %d", len(guides),
+						tt.expectedCount,
+					)
+				}
+			},
+		)
 	}
 }
 
@@ -90,7 +98,7 @@ import "database/sql"
 func main() {
 	// Test
 }`
-	
+
 	err := os.WriteFile(testFile, []byte(content), 0644)
 	if err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
@@ -112,7 +120,7 @@ func main() {
 	}
 
 	resolver := NewResolver(cfg)
-	
+
 	guides, err := resolver.GetGuides(testFile)
 	if err != nil {
 		t.Fatalf("GetGuides() error = %v", err)

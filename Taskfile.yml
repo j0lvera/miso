@@ -22,4 +22,5 @@ tasks:
 
   build:
     cmds:
-      - go build -o ~/.bin/review cmd/main/main.go
+      - go build -o ~/.bin/miso cmd/main/main.go
+      - chmod +x ~/.bin/miso

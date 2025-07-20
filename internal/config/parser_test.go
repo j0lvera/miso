@@ -77,21 +77,26 @@ patterns:
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := parser.LoadFromString(tt.yaml)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("LoadFromString() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
+		t.Run(
+			tt.name, func(t *testing.T) {
+				_, err := parser.LoadFromString(tt.yaml)
+				if (err != nil) != tt.wantErr {
+					t.Errorf(
+						"LoadFromString() error = %v, wantErr %v", err,
+						tt.wantErr,
+					)
+				}
+			},
+		)
 	}
 }
 
 func TestLoadFile(t *testing.T) {
 	// Create a temporary directory
 	tmpDir := t.TempDir()
-	
+
 	// Create a test config file
-	configPath := filepath.Join(tmpDir, "go-review.yml")
+	configPath := filepath.Join(tmpDir, "miso.yml")
 	configContent := `
 content_defaults:
   strategy: "first_lines"
@@ -103,7 +108,7 @@ patterns:
       - testing.md
     stop: true
 `
-	
+
 	err := os.WriteFile(configPath, []byte(configContent), 0644)
 	if err != nil {
 		t.Fatalf("Failed to write test config: %v", err)
@@ -117,17 +122,20 @@ patterns:
 
 	// Verify loaded config
 	if config.ContentDefaults.Strategy != "first_lines" {
-		t.Errorf("Expected strategy 'first_lines', got %s", config.ContentDefaults.Strategy)
+		t.Errorf(
+			"Expected strategy 'first_lines', got %s",
+			config.ContentDefaults.Strategy,
+		)
 	}
-	
+
 	if config.ContentDefaults.Lines != 30 {
 		t.Errorf("Expected lines 30, got %d", config.ContentDefaults.Lines)
 	}
-	
+
 	if len(config.Patterns) != 1 {
 		t.Errorf("Expected 1 pattern, got %d", len(config.Patterns))
 	}
-	
+
 	if config.Patterns[0].Stop != true {
 		t.Errorf("Expected stop flag to be true")
 	}
@@ -135,12 +143,17 @@ patterns:
 
 func TestDefaultConfig(t *testing.T) {
 	config := DefaultConfig()
-	
+
 	if config.ContentDefaults.Strategy != "first_lines" {
-		t.Errorf("Expected default strategy 'first_lines', got %s", config.ContentDefaults.Strategy)
+		t.Errorf(
+			"Expected default strategy 'first_lines', got %s",
+			config.ContentDefaults.Strategy,
+		)
 	}
-	
+
 	if config.ContentDefaults.Lines != 50 {
-		t.Errorf("Expected default lines 50, got %d", config.ContentDefaults.Lines)
+		t.Errorf(
+			"Expected default lines 50, got %d", config.ContentDefaults.Lines,
+		)
 	}
 }

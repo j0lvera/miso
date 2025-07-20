@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/j0lvera/go-review/internal/config"
-	"github.com/j0lvera/go-review/internal/git"
+	"github.com/j0lvera/miso/internal/config"
+	"github.com/j0lvera/miso/internal/git"
 )
 
 func TestDiffReview(t *testing.T) {
@@ -29,9 +29,18 @@ func TestDiffReview(t *testing.T) {
 						NewCount: 3,
 						Header:   "@@ -1,2 +1,3 @@",
 						Lines: []git.DiffLine{
-							{Type: git.DiffLineContext, Content: "package main"},
-							{Type: git.DiffLineAdded, Content: "import \"fmt\""},
-							{Type: git.DiffLineContext, Content: "func main() {}"},
+							{
+								Type:    git.DiffLineContext,
+								Content: "package main",
+							},
+							{
+								Type:    git.DiffLineAdded,
+								Content: "import \"fmt\"",
+							},
+							{
+								Type:    git.DiffLineContext,
+								Content: "func main() {}",
+							},
 						},
 					},
 				},
@@ -63,8 +72,14 @@ func TestDiffReview(t *testing.T) {
 						NewCount: 2,
 						Header:   "@@ -5,3 +5,2 @@",
 						Lines: []git.DiffLine{
-							{Type: git.DiffLineContext, Content: "func handler() {"},
-							{Type: git.DiffLineRemoved, Content: "// TODO: implement"},
+							{
+								Type:    git.DiffLineContext,
+								Content: "func handler() {",
+							},
+							{
+								Type:    git.DiffLineRemoved,
+								Content: "// TODO: implement",
+							},
 							{Type: git.DiffLineContext, Content: "}"},
 						},
 					},
@@ -105,14 +120,23 @@ func TestDiffReview(t *testing.T) {
 					{
 						Header: "@@ -1,2 +1,3 @@",
 						Lines: []git.DiffLine{
-							{Type: git.DiffLineAdded, Content: "// New comment"},
-							{Type: git.DiffLineContext, Content: "package main"},
+							{
+								Type:    git.DiffLineAdded,
+								Content: "// New comment",
+							},
+							{
+								Type:    git.DiffLineContext,
+								Content: "package main",
+							},
 						},
 					},
 					{
 						Header: "@@ -10,3 +11,2 @@",
 						Lines: []git.DiffLine{
-							{Type: git.DiffLineContext, Content: "func test() {"},
+							{
+								Type:    git.DiffLineContext,
+								Content: "func test() {",
+							},
 							{Type: git.DiffLineRemoved, Content: "old code"},
 							{Type: git.DiffLineContext, Content: "}"},
 						},
@@ -124,7 +148,7 @@ func TestDiffReview(t *testing.T) {
 			contains: []string{
 				"Changes Summary:",
 				"Added lines: 1",
-				"Removed lines: 1", 
+				"Removed lines: 1",
 				"Total hunks: 2",
 				"@@ -1,2 +1,3 @@",
 				"@@ -10,3 +11,2 @@",
@@ -135,35 +159,42 @@ func TestDiffReview(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := DiffReview(cfg, tt.diffData, tt.filename)
+		t.Run(
+			tt.name, func(t *testing.T) {
+				got, err := DiffReview(cfg, tt.diffData, tt.filename)
 
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DiffReview() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			
-			if err != nil {
-				return // Skip content checks if we expected an error
-			}
-
-			// Check that all expected strings are present
-			for _, expected := range tt.contains {
-				if !strings.Contains(got, expected) {
-					t.Errorf("DiffReview() output missing expected string: %q", expected)
-					t.Logf("Full output:\n%s", got)
+				if (err != nil) != tt.wantErr {
+					t.Errorf(
+						"DiffReview() error = %v, wantErr %v", err, tt.wantErr,
+					)
+					return
 				}
-			}
 
-			// Basic structure checks
-			if !strings.Contains(got, "You are an expert code reviewer") {
-				t.Error("DiffReview() should contain reviewer instruction")
-			}
-			
-			if !strings.Contains(got, "CHANGE ANALYSIS FOCUS") {
-				t.Error("DiffReview() should contain analysis focus section")
-			}
-		})
+				if err != nil {
+					return // Skip content checks if we expected an error
+				}
+
+				// Check that all expected strings are present
+				for _, expected := range tt.contains {
+					if !strings.Contains(got, expected) {
+						t.Errorf(
+							"DiffReview() output missing expected string: %q",
+							expected,
+						)
+						t.Logf("Full output:\n%s", got)
+					}
+				}
+
+				// Basic structure checks
+				if !strings.Contains(got, "You are an expert code reviewer") {
+					t.Error("DiffReview() should contain reviewer instruction")
+				}
+
+				if !strings.Contains(got, "CHANGE ANALYSIS FOCUS") {
+					t.Error("DiffReview() should contain analysis focus section")
+				}
+			},
+		)
 	}
 }
 
@@ -176,7 +207,10 @@ func TestDiffReview_GuideIntegration(t *testing.T) {
 			{
 				Header: "@@ -1,1 +1,2 @@",
 				Lines: []git.DiffLine{
-					{Type: git.DiffLineContext, Content: "import React from 'react'"},
+					{
+						Type:    git.DiffLineContext,
+						Content: "import React from 'react'",
+					},
 					{Type: git.DiffLineAdded, Content: "// Added comment"},
 				},
 			},

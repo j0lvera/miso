@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/j0lvera/go-review/internal/config"
-	"github.com/j0lvera/go-review/internal/resolver"
+	"github.com/j0lvera/miso/internal/config"
+	"github.com/j0lvera/miso/internal/resolver"
 	"github.com/tmc/langchaingo/prompts"
 )
 
-func CodeReview(cfg *config.Config, code string, filename string) (string, error) {
+func CodeReview(cfg *config.Config, code string, filename string) (
+	string, error,
+) {
 	// Use resolver
 	res := resolver.NewResolver(cfg)
 	guides, err := res.GetGuides(filename)
@@ -28,7 +30,11 @@ func CodeReview(cfg *config.Config, code string, filename string) (string, error
 	if len(guideContent) > 0 {
 		combinedGuides.WriteString("\n\n**Architecture Guides:**\n")
 		for guideName, content := range guideContent {
-			combinedGuides.WriteString(fmt.Sprintf("\n=== %s ===\n%s\n", guideName, content))
+			combinedGuides.WriteString(
+				fmt.Sprintf(
+					"\n=== %s ===\n%s\n", guideName, content,
+				),
+			)
 		}
 	}
 
@@ -56,7 +62,7 @@ For each issue provide:
 - What's wrong and severity
 - Why it matters
 - How to fix. Use this specific format for the fix, with the original code and your suggested change:
-` + "```original\n" + `[the exact code to be replaced]` + "\n```\n" + "```suggestion\n" + `[the new code]` + "\n```" + `
+`+"```original\n"+`[the exact code to be replaced]`+"\n```\n"+"```suggestion\n"+`[the new code]`+"\n```"+`
 
 Keep it concise - actionable issues only.
 
@@ -78,4 +84,3 @@ File: {{.filename}}{{.guide}}`,
 		},
 	)
 }
-

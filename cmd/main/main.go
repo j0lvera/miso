@@ -10,18 +10,18 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/briandowns/spinner"
-	"github.com/j0lvera/go-review/internal/agents"
-	"github.com/j0lvera/go-review/internal/config"
-	"github.com/j0lvera/go-review/internal/diff"
-	"github.com/j0lvera/go-review/internal/git"
-	"github.com/j0lvera/go-review/internal/resolver"
+	"github.com/j0lvera/miso/internal/agents"
+	"github.com/j0lvera/miso/internal/config"
+	"github.com/j0lvera/miso/internal/diff"
+	"github.com/j0lvera/miso/internal/git"
+	"github.com/j0lvera/miso/internal/resolver"
 )
 
 var version = "dev"
 
 type CLI struct {
 	Config string `short:"c" help:"Path to config file" type:"existingfile"`
-	
+
 	Review         ReviewCmd         `cmd:"" help:"Review a code file"`
 	Diff           DiffCmd           `cmd:"" help:"Review changes in a git diff"`
 	ValidateConfig ValidateConfigCmd `cmd:"" help:"Validate configuration file"`
@@ -39,7 +39,7 @@ type ReviewCmd struct {
 type VersionCmd struct{}
 
 func (v *VersionCmd) Run() error {
-	fmt.Printf("go-review version %s\n", version)
+	fmt.Printf("miso version %s\n", version)
 	return nil
 }
 
@@ -48,11 +48,11 @@ func (vc *ValidateConfigCmd) Run(cli *CLI) error {
 	if configPath == "" && cli.Config != "" {
 		configPath = cli.Config
 	}
-	
+
 	parser := config.NewParser()
 	var cfg *config.Config
 	var err error
-	
+
 	if configPath != "" {
 		cfg, err = parser.LoadFile(configPath)
 		fmt.Printf("Validating config file: %s\n", configPath)
@@ -62,7 +62,7 @@ func (vc *ValidateConfigCmd) Run(cli *CLI) error {
 			fmt.Println("No config file found, using defaults")
 			return nil
 		}
-		
+
 		// Find which config file was loaded
 		foundPath, findErr := parser.FindConfigFile()
 		if findErr == nil {
@@ -71,15 +71,15 @@ func (vc *ValidateConfigCmd) Run(cli *CLI) error {
 			fmt.Println("Validating default configuration")
 		}
 	}
-	
+
 	if err != nil {
 		fmt.Printf("❌ Configuration validation failed: %v\n", err)
 		return err
 	}
-	
+
 	// Validate patterns
 	issues := validatePatterns(cfg.Patterns)
-	
+
 	if len(issues) == 0 {
 		fmt.Printf("✅ Configuration is valid!\n")
 		fmt.Printf("   - Content strategy: %s\n", cfg.ContentDefaults.Strategy)
@@ -92,7 +92,7 @@ func (vc *ValidateConfigCmd) Run(cli *CLI) error {
 		}
 		return fmt.Errorf("configuration validation failed")
 	}
-	
+
 	return nil
 }
 
@@ -100,11 +100,13 @@ func (tp *TestPatternCmd) Run(cli *CLI) error {
 	parser := config.NewParser()
 	var cfg *config.Config
 	var err error
-	
+
 	if cli.Config != "" {
 		cfg, err = parser.LoadFile(cli.Config)
 		if err != nil {
-			return fmt.Errorf("failed to load config file %s: %w", cli.Config, err)
+			return fmt.Errorf(
+				"failed to load config file %s: %w", cli.Config, err,
+			)
 		}
 	} else {
 		cfg, err = parser.Load()
@@ -115,44 +117,44 @@ func (tp *TestPatternCmd) Run(cli *CLI) error {
 			fmt.Println("Using default configuration (no config file found or config is empty)")
 		}
 	}
-	
+
 	// Create resolver and test the file
 	res := resolver.NewResolver(cfg)
-	
+
 	fmt.Printf("Testing file: %s\n", tp.File)
 	fmt.Printf("Configuration: %d patterns defined\n\n", len(cfg.Patterns))
-	
+
 	// Test if file should be reviewed
 	shouldReview := res.ShouldReview(tp.File)
 	fmt.Printf("Should review: %t\n", shouldReview)
-	
+
 	if !shouldReview {
 		fmt.Println("No patterns matched this file.")
 		return nil
 	}
-	
+
 	// Get matched guides for regular review
 	guides, err := res.GetGuides(tp.File)
 	if err != nil {
 		return fmt.Errorf("failed to get guides: %w", err)
 	}
-	
+
 	fmt.Printf("\nRegular review guides: %v\n", guides)
-	
+
 	// Get matched guides for diff review
 	diffGuides, err := res.GetDiffGuides(tp.File)
 	if err != nil {
 		return fmt.Errorf("failed to get diff guides: %w", err)
 	}
-	
+
 	fmt.Printf("Diff review guides: %v\n", diffGuides)
-	
+
 	if tp.Verbose {
 		fmt.Printf("\nDetailed pattern matching:\n")
 		// We need to expose pattern matching details - let's add this functionality
 		showDetailedMatching(cfg, tp.File)
 	}
-	
+
 	return nil
 }
 
@@ -161,11 +163,13 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 	parser := config.NewParser()
 	var cfg *config.Config
 	var err error
-	
+
 	if cli.Config != "" {
 		cfg, err = parser.LoadFile(cli.Config)
 		if err != nil {
-			return fmt.Errorf("failed to load config file %s: %w", cli.Config, err)
+			return fmt.Errorf(
+				"failed to load config file %s: %w", cli.Config, err,
+			)
 		}
 		if r.Verbose {
 			fmt.Printf("Using config file: %s\n", cli.Config)
@@ -229,10 +233,10 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 
 	// Perform review
 	result, err := reviewer.Review(cfg, string(content), filename)
-	
+
 	// Stop spinner
 	s.Stop()
-	
+
 	if err != nil {
 		return fmt.Errorf("review failed: %w", err)
 	}
@@ -242,14 +246,16 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 	formattedContent := formatter.Format(result.Content)
 
 	fmt.Println(formattedContent)
-	
+
 	// Display token usage if available
 	if result.TokensUsed > 0 {
 		fmt.Printf("\n---\n")
-		fmt.Printf("Tokens used: %d (input: %d, output: %d)\n", 
-			result.TokensUsed, result.InputTokens, result.OutputTokens)
+		fmt.Printf(
+			"Tokens used: %d (input: %d, output: %d)\n",
+			result.TokensUsed, result.InputTokens, result.OutputTokens,
+		)
 	}
-	
+
 	// Debug info at the very end
 	if os.Getenv("DEBUG") == "true" {
 		fmt.Printf("\n[DEBUG] Token extraction details:\n")
@@ -257,7 +263,7 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 		fmt.Printf("  Input tokens: %d\n", result.InputTokens)
 		fmt.Printf("  Output tokens: %d\n", result.OutputTokens)
 	}
-	
+
 	return nil
 }
 
@@ -282,11 +288,13 @@ func (d *DiffCmd) Run(cli *CLI) error {
 	parser := config.NewParser()
 	var cfg *config.Config
 	var err error
-	
+
 	if cli.Config != "" {
 		cfg, err = parser.LoadFile(cli.Config)
 		if err != nil {
-			return fmt.Errorf("failed to load config file %s: %w", cli.Config, err)
+			return fmt.Errorf(
+				"failed to load config file %s: %w", cli.Config, err,
+			)
 		}
 		if d.Verbose {
 			fmt.Printf("Using config file: %s\n", cli.Config)
@@ -309,7 +317,7 @@ func (d *DiffCmd) Run(cli *CLI) error {
 
 	// Parse git range
 	base, head := git.ParseGitRange(d.Range)
-	
+
 	if d.Verbose {
 		fmt.Printf("Reviewing changes between %s and %s\n", base, head)
 	}
@@ -396,10 +404,10 @@ func (d *DiffCmd) Run(cli *CLI) error {
 
 		// Perform diff review (reviewing only the changes)
 		result, err := reviewer.ReviewDiff(cfg, diffData, file)
-		
+
 		// Stop spinner
 		s.Stop()
-		
+
 		if err != nil {
 			fmt.Printf("Error reviewing file: %v\n", err)
 			continue
@@ -408,7 +416,7 @@ func (d *DiffCmd) Run(cli *CLI) error {
 		// Format the output to include diffs
 		formattedContent := formatter.Format(result.Content)
 		fmt.Println(formattedContent)
-		
+
 		if result.TokensUsed > 0 {
 			totalTokens += result.TokensUsed
 		}
@@ -424,37 +432,56 @@ func (d *DiffCmd) Run(cli *CLI) error {
 	return nil
 }
 
-
 func validatePatterns(patterns []config.Pattern) []string {
 	var issues []string
-	
+
 	for i, pattern := range patterns {
 		// Check if pattern has at least one matching criteria
 		if pattern.Filename == "" && pattern.Content == "" {
-			issues = append(issues, fmt.Sprintf("Pattern %d (%s): no filename or content pattern defined", i+1, pattern.Name))
+			issues = append(
+				issues, fmt.Sprintf(
+					"Pattern %d (%s): no filename or content pattern defined",
+					i+1, pattern.Name,
+				),
+			)
 		}
-		
+
 		// Validate regex patterns
 		if pattern.Filename != "" {
 			if _, err := regexp.Compile(pattern.Filename); err != nil {
-				issues = append(issues, fmt.Sprintf("Pattern %d (%s): invalid filename regex: %v", i+1, pattern.Name, err))
+				issues = append(
+					issues, fmt.Sprintf(
+						"Pattern %d (%s): invalid filename regex: %v", i+1,
+						pattern.Name, err,
+					),
+				)
 			}
 		}
-		
+
 		if pattern.Content != "" {
 			if _, err := regexp.Compile(pattern.Content); err != nil {
-				issues = append(issues, fmt.Sprintf("Pattern %d (%s): invalid content regex: %v", i+1, pattern.Name, err))
+				issues = append(
+					issues, fmt.Sprintf(
+						"Pattern %d (%s): invalid content regex: %v", i+1,
+						pattern.Name, err,
+					),
+				)
 			}
 		}
-		
+
 		// Check if guide files exist
 		allGuides := append(pattern.Context, pattern.DiffContext...)
 		for _, guide := range allGuides {
 			if !checkGuideExists(guide) {
-				issues = append(issues, fmt.Sprintf("Pattern %d (%s): guide file not found: %s", i+1, pattern.Name, guide))
+				issues = append(
+					issues, fmt.Sprintf(
+						"Pattern %d (%s): guide file not found: %s", i+1,
+						pattern.Name, guide,
+					),
+				)
 			}
 		}
-		
+
 		// Validate content strategy
 		if pattern.ContentStrategy != "" {
 			validStrategies := map[string]bool{
@@ -463,11 +490,16 @@ func validatePatterns(patterns []config.Pattern) []string {
 				"smart":       true,
 			}
 			if !validStrategies[pattern.ContentStrategy] {
-				issues = append(issues, fmt.Sprintf("Pattern %d (%s): invalid content strategy: %s", i+1, pattern.Name, pattern.ContentStrategy))
+				issues = append(
+					issues, fmt.Sprintf(
+						"Pattern %d (%s): invalid content strategy: %s", i+1,
+						pattern.Name, pattern.ContentStrategy,
+					),
+				)
 			}
 		}
 	}
-	
+
 	return issues
 }
 
@@ -478,7 +510,7 @@ func checkGuideExists(guidePath string) bool {
 		filepath.Join("guides", "react", guidePath), // Legacy path support
 		guidePath, // Direct path
 	}
-	
+
 	for _, path := range paths {
 		if _, err := os.Stat(path); err == nil {
 			return true
@@ -497,15 +529,21 @@ func showDetailedMatching(cfg *config.Config, filename string) {
 				fmt.Printf("  ❌ %s: invalid regex (%v)\n", pattern.Name, err)
 				continue
 			}
-			
+
 			if regex.MatchString(filename) {
-				fmt.Printf("  ✅ %s: matches filename pattern '%s'\n", pattern.Name, pattern.Filename)
+				fmt.Printf(
+					"  ✅ %s: matches filename pattern '%s'\n", pattern.Name,
+					pattern.Filename,
+				)
 			} else {
-				fmt.Printf("  ❌ %s: no match for pattern '%s'\n", pattern.Name, pattern.Filename)
+				fmt.Printf(
+					"  ❌ %s: no match for pattern '%s'\n", pattern.Name,
+					pattern.Filename,
+				)
 			}
 		}
 	}
-	
+
 	// Test content patterns (if file exists and is readable)
 	if content, err := os.ReadFile(filename); err == nil {
 		fmt.Printf("\nContent pattern matching:\n")
@@ -513,34 +551,49 @@ func showDetailedMatching(cfg *config.Config, filename string) {
 			if pattern.Content != "" {
 				regex, err := regexp.Compile(pattern.Content)
 				if err != nil {
-					fmt.Printf("  ❌ %s: invalid content regex (%v)\n", pattern.Name, err)
+					fmt.Printf(
+						"  ❌ %s: invalid content regex (%v)\n", pattern.Name,
+						err,
+					)
 					continue
 				}
-				
+
 				// Get content to scan based on strategy
-				contentToScan := getContentToScan(content, pattern, cfg.ContentDefaults)
-				
+				contentToScan := getContentToScan(
+					content, pattern, cfg.ContentDefaults,
+				)
+
 				if regex.Match(contentToScan) {
-					fmt.Printf("  ✅ %s: matches content pattern '%s'\n", pattern.Name, pattern.Content)
+					fmt.Printf(
+						"  ✅ %s: matches content pattern '%s'\n", pattern.Name,
+						pattern.Content,
+					)
 				} else {
-					fmt.Printf("  ❌ %s: no match for content pattern '%s'\n", pattern.Name, pattern.Content)
+					fmt.Printf(
+						"  ❌ %s: no match for content pattern '%s'\n",
+						pattern.Name, pattern.Content,
+					)
 				}
 			}
 		}
 	} else {
-		fmt.Printf("\nContent pattern matching: skipped (cannot read file: %v)\n", err)
+		fmt.Printf(
+			"\nContent pattern matching: skipped (cannot read file: %v)\n", err,
+		)
 	}
 }
 
-func getContentToScan(content []byte, pattern config.Pattern, defaults config.ContentDefaults) []byte {
+func getContentToScan(
+	content []byte, pattern config.Pattern, defaults config.ContentDefaults,
+) []byte {
 	strategy := pattern.ContentStrategy
 	if strategy == "" {
 		strategy = defaults.Strategy
 	}
-	
+
 	lines := strings.Split(string(content), "\n")
 	totalLines := len(lines)
-	
+
 	switch strategy {
 	case "full_file":
 		return content
@@ -554,14 +607,14 @@ func getContentToScan(content []byte, pattern config.Pattern, defaults config.Co
 			firstLines = defaults.Lines
 			lastLines = defaults.Lines
 		}
-		
+
 		var selectedLines []string
-		
+
 		// Add first lines
 		for i := 0; i < firstLines && i < totalLines; i++ {
 			selectedLines = append(selectedLines, lines[i])
 		}
-		
+
 		// Add last lines
 		start := totalLines - lastLines
 		if start < firstLines {
@@ -570,26 +623,27 @@ func getContentToScan(content []byte, pattern config.Pattern, defaults config.Co
 		for i := start; i < totalLines; i++ {
 			selectedLines = append(selectedLines, lines[i])
 		}
-		
+
 		return []byte(strings.Join(selectedLines, "\n"))
 	default: // first_lines
 		linesToScan := defaults.Lines
 		if len(pattern.ContentLines) > 0 {
 			linesToScan = pattern.ContentLines[0]
 		}
-		
+
 		if linesToScan >= totalLines {
 			return content
 		}
-		
+
 		return []byte(strings.Join(lines[:linesToScan], "\n"))
 	}
 }
 
 func main() {
 	var cli CLI
-	ctx := kong.Parse(&cli,
-		kong.Name("go-review"),
+	ctx := kong.Parse(
+		&cli,
+		kong.Name("miso"),
 		kong.Description("AI-powered code review tool"),
 		kong.UsageOnError(),
 	)

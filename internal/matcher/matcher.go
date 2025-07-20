@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/j0lvera/go-review/internal/config"
+	"github.com/j0lvera/miso/internal/config"
 )
 
 // Matcher handles pattern matching for files and content based on configuration rules.
@@ -37,7 +37,10 @@ func (m *Matcher) MatchFile(filename string) ([]config.Pattern, error) {
 		if pattern.Filename != "" {
 			regex, err := m.getRegex(pattern.Name+"_filename", pattern.Filename)
 			if err != nil {
-				return nil, fmt.Errorf("invalid filename regex for pattern %s: %w", pattern.Name, err)
+				return nil, fmt.Errorf(
+					"invalid filename regex for pattern %s: %w", pattern.Name,
+					err,
+				)
 			}
 
 			if regex.MatchString(filename) {
@@ -54,7 +57,9 @@ func (m *Matcher) MatchFile(filename string) ([]config.Pattern, error) {
 
 // MatchFileContent determines which patterns match based on both filename and file content.
 // Evaluates all patterns and applies the appropriate content scanning strategy for each.
-func (m *Matcher) MatchFileContent(filename string, content []byte) ([]config.Pattern, error) {
+func (m *Matcher) MatchFileContent(
+	filename string, content []byte,
+) ([]config.Pattern, error) {
 	var matchedPatterns []config.Pattern
 
 	// First, get filename matches
@@ -78,9 +83,14 @@ func (m *Matcher) MatchFileContent(filename string, content []byte) ([]config.Pa
 			if filenameMatchMap[pattern.Name] {
 				// Filename matched, now check content
 				contentToScan := m.getContentToScan(content, pattern)
-				regex, err := m.getRegex(pattern.Name+"_content", pattern.Content)
+				regex, err := m.getRegex(
+					pattern.Name+"_content", pattern.Content,
+				)
 				if err != nil {
-					return nil, fmt.Errorf("invalid content regex for pattern %s: %w", pattern.Name, err)
+					return nil, fmt.Errorf(
+						"invalid content regex for pattern %s: %w",
+						pattern.Name, err,
+					)
 				}
 				if regex.Match(contentToScan) {
 					matched = true
@@ -96,7 +106,10 @@ func (m *Matcher) MatchFileContent(filename string, content []byte) ([]config.Pa
 			contentToScan := m.getContentToScan(content, pattern)
 			regex, err := m.getRegex(pattern.Name+"_content", pattern.Content)
 			if err != nil {
-				return nil, fmt.Errorf("invalid content regex for pattern %s: %w", pattern.Name, err)
+				return nil, fmt.Errorf(
+					"invalid content regex for pattern %s: %w", pattern.Name,
+					err,
+				)
 			}
 			if regex.Match(contentToScan) {
 				matched = true
@@ -115,7 +128,9 @@ func (m *Matcher) MatchFileContent(filename string, content []byte) ([]config.Pa
 }
 
 // getContentToScan returns the portion of content to scan based on strategy
-func (m *Matcher) getContentToScan(content []byte, pattern config.Pattern) []byte {
+func (m *Matcher) getContentToScan(
+	content []byte, pattern config.Pattern,
+) []byte {
 	strategy := pattern.ContentStrategy
 	if strategy == "" {
 		strategy = m.config.ContentDefaults.Strategy
@@ -187,7 +202,9 @@ func (m *Matcher) getContentToScan(content []byte, pattern config.Pattern) []byt
 
 // GetMatchedGuides returns the appropriate guide files for the given matched patterns.
 // Uses diff_context guides if isDiff is true, otherwise uses regular context guides.
-func (m *Matcher) GetMatchedGuides(patterns []config.Pattern, isDiff bool) []string {
+func (m *Matcher) GetMatchedGuides(
+	patterns []config.Pattern, isDiff bool,
+) []string {
 	guideMap := make(map[string]bool)
 	var guides []string
 
@@ -238,7 +255,9 @@ func (m *Matcher) ScanFile(filename string) ([]config.Pattern, error) {
 
 // ScanFileLines reads a file line by line up to maxLines for memory efficiency.
 // Useful for large files where full content scanning would be expensive.
-func (m *Matcher) ScanFileLines(filename string, maxLines int) ([]config.Pattern, error) {
+func (m *Matcher) ScanFileLines(
+	filename string, maxLines int,
+) ([]config.Pattern, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %s: %w", filename, err)

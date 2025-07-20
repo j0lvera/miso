@@ -1,5 +1,5 @@
 # For more info see https://goreleaser.com/
-project_name: go-review
+project_name: miso
 
 before:
   hooks:
@@ -7,7 +7,7 @@ before:
 
 builds:
   - main: ./cmd/main
-    binary: go-review
+    binary: miso
     env:
       - CGO_ENABLED=0
     goos:

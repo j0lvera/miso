@@ -33,22 +33,17 @@ func CodeReview(cfg *config.Config, code string, filename string) (string, error
 	}
 
 	template := prompts.NewPromptTemplate(
-		`You are an expert Frontend code reviewer specializing in Enterprise React applications. Perform a two-pass review:
+		`You are an expert code reviewer. Perform a two-pass review on the provided code.
 
-**FIRST PASS - React Best Practices**
-Identify general issues unrelated to our architecture guide:
-- Runtime errors, null safety, type issues
-- Performance problems (unnecessary re-renders, large bundles)
-- Security vulnerabilities (XSS, sensitive data exposure)
-- React anti-patterns (direct DOM manipulation, improper hooks usage)
+**FIRST PASS - General Code Health**
+Identify general issues based on the following criteria:
+- **General Issues & Idiomatic Patterns:** Check for correctness, clarity, and adherence to the language's idiomatic style.
+- **Performance:** Look for potential performance bottlenecks or inefficient code.
+- **Security:** Identify potential security vulnerabilities.
+- **Code Smells:** Find any indicators of deeper problems in the code design.
 
-**SECOND PASS - Architecture Compliance**  
-Review against our React Architecture guide:
-- ✓ Page structure matches the "Page body example"
-- ✓ Exports follow the PostsPage/Page pattern
-- ✓ Business logic (CRUD operations) in Page component
-- ✓ Data fetching uses recommended patterns
-- ✓ Modal state management with ts-pattern
+**SECOND PASS - Architecture Compliance**
+Review the code against the provided Architecture Guides. If no guides are provided, skip this pass.
 
 **Report Format:**
 ## First Pass: General Issues
@@ -65,7 +60,7 @@ For each issue provide:
 Keep it concise - actionable issues only.
 
 Code to review:
-'''tsx
+'''
 {{.code}}
 '''
 

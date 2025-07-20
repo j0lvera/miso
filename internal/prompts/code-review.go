@@ -9,58 +9,6 @@ import (
 	"github.com/tmc/langchaingo/prompts"
 )
 
-// getDefaultLegacyConfig returns a config with the old router patterns for backward compatibility
-func getDefaultLegacyConfig() *config.Config {
-	return &config.Config{
-		ContentDefaults: config.ContentDefaults{
-			Strategy: "first_lines",
-			Lines:    50,
-		},
-		Patterns: []config.Pattern{
-			{
-				Name:     "react-pages",
-				Filename: `\.page\.(ts|tsx)$`,
-				Context:  []string{"page.md"},
-			},
-			{
-				Name:     "react-constants",
-				Filename: `\.const\.(ts|tsx)$`,
-				Context:  []string{"const.md"},
-			},
-			{
-				Name:     "react-utils",
-				Filename: `\.utils\.(ts|tsx)$`,
-				Context:  []string{"utils.md"},
-			},
-			{
-				Name:     "react-hooks",
-				Filename: `\.hooks\.(ts|tsx)$`,
-				Context:  []string{"hooks.md"},
-			},
-			{
-				Name:     "react-lists",
-				Filename: `\.list\.(ts|tsx)$`,
-				Context:  []string{"list.md"},
-			},
-			{
-				Name:     "react-details",
-				Filename: `\.detail\.(ts|tsx)$`,
-				Context:  []string{"detail.md"},
-			},
-			{
-				Name:     "react-forms",
-				Filename: `\.form\.(ts|tsx)$`,
-				Context:  []string{"form.md"},
-			},
-			{
-				Name:     "react-tables",
-				Filename: `\.table\.(ts|tsx)$`,
-				Context:  []string{"table.md"},
-			},
-		},
-	}
-}
-
 func CodeReview(cfg *config.Config, code string, filename string) (string, error) {
 	// Use resolver
 	res := resolver.NewResolver(cfg)

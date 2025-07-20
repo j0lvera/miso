@@ -107,9 +107,11 @@ func (tp *TestPatternCmd) Run(cli *CLI) error {
 		}
 	} else {
 		cfg, err = parser.Load()
-		if err != nil || len(cfg.Patterns) == 0 {
-			cfg = getDefaultLegacyConfig()
-			fmt.Println("Using default configuration (no config file found)")
+		if err != nil {
+			return fmt.Errorf("failed to load configuration: %w", err)
+		}
+		if len(cfg.Patterns) == 0 {
+			fmt.Println("Using default configuration (no config file found or config is empty)")
 		}
 	}
 	
@@ -169,11 +171,11 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 		}
 	} else {
 		cfg, err = parser.Load()
-		if err != nil || len(cfg.Patterns) == 0 {
-			cfg = getDefaultLegacyConfig()
-			if r.Verbose {
-				fmt.Println("Using default configuration")
-			}
+		if err != nil {
+			return fmt.Errorf("failed to load configuration: %w", err)
+		}
+		if r.Verbose && len(cfg.Patterns) == 0 {
+			fmt.Println("Using default configuration (no config file found or config is empty)")
 		}
 	}
 
@@ -286,11 +288,11 @@ func (d *DiffCmd) Run(cli *CLI) error {
 		}
 	} else {
 		cfg, err = parser.Load()
-		if err != nil || len(cfg.Patterns) == 0 {
-			cfg = getDefaultLegacyConfig()
-			if d.Verbose {
-				fmt.Println("Using default configuration")
-			}
+		if err != nil {
+			return fmt.Errorf("failed to load configuration: %w", err)
+		}
+		if d.Verbose && len(cfg.Patterns) == 0 {
+			fmt.Println("Using default configuration (no config file found or config is empty)")
 		}
 	}
 
@@ -412,97 +414,6 @@ func (d *DiffCmd) Run(cli *CLI) error {
 	return nil
 }
 
-// getDefaultLegacyConfig returns a config with the old router patterns for backward compatibility
-func getDefaultLegacyConfig() *config.Config {
-	return &config.Config{
-		ContentDefaults: config.ContentDefaults{
-			Strategy: "first_lines",
-			Lines:    50,
-		},
-		Patterns: []config.Pattern{
-			{
-				Name:     "react-pages",
-				Filename: `\.page\.(ts|tsx)$`,
-				Context:  []string{"page.md"},
-			},
-			{
-				Name:     "react-constants",
-				Filename: `\.const\.(ts|tsx)$`,
-				Context:  []string{"const.md"},
-			},
-			{
-				Name:     "react-utils",
-				Filename: `\.utils\.(ts|tsx)$`,
-				Context:  []string{"utils.md"},
-			},
-			{
-				Name:     "react-hooks",
-				Filename: `\.hooks\.(ts|tsx)$`,
-				Context:  []string{"hooks.md"},
-			},
-			{
-				Name:     "react-lists",
-				Filename: `\.list\.(ts|tsx)$`,
-				Context:  []string{"list.md"},
-			},
-			{
-				Name:     "react-details",
-				Filename: `\.detail\.(ts|tsx)$`,
-				Context:  []string{"detail.md"},
-			},
-			{
-				Name:     "react-forms",
-				Filename: `\.form\.(ts|tsx)$`,
-				Context:  []string{"form.md"},
-			},
-			{
-				Name:     "react-tables",
-				Filename: `\.table\.(ts|tsx)$`,
-				Context:  []string{"table.md"},
-			},
-		},
-	}
-}
-
-func shouldReviewFile(filename string) bool {
-	// Skip common non-code files
-	skipExtensions := []string{
-		".md", ".json", ".lock", ".yaml", ".yml",
-		".png", ".jpg", ".jpeg", ".gif", ".svg",
-		".ico", ".pdf", ".zip", ".tar", ".gz",
-	}
-	
-	ext := filepath.Ext(filename)
-	for _, skip := range skipExtensions {
-		if ext == skip {
-			return false
-		}
-	}
-
-	// Skip common directories
-	skipDirs := []string{
-		"node_modules", ".git", "dist", "build",
-		"coverage", ".next", "out",
-	}
-	
-	for _, skip := range skipDirs {
-		if strings.Contains(filename, skip+"/") {
-			return false
-		}
-	}
-
-	// Try to load configuration
-	parser := config.NewParser()
-	cfg, err := parser.Load()
-	if err != nil || len(cfg.Patterns) == 0 {
-		// Use default legacy config for backward compatibility
-		cfg = getDefaultLegacyConfig()
-	}
-
-	// Use resolver
-	res := resolver.NewResolver(cfg)
-	return res.ShouldReview(filename)
-}
 
 func validatePatterns(patterns []config.Pattern) []string {
 	var issues []string

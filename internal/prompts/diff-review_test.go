@@ -4,10 +4,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/j0lvera/go-review/internal/config"
 	"github.com/j0lvera/go-review/internal/git"
 )
 
 func TestDiffReview(t *testing.T) {
+	cfg := config.DefaultConfig()
 	tests := []struct {
 		name     string
 		diffData *git.DiffData
@@ -134,8 +136,8 @@ func TestDiffReview(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := DiffReview(tt.diffData, tt.filename)
-			
+			got, err := DiffReview(cfg, tt.diffData, tt.filename)
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DiffReview() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -166,6 +168,7 @@ func TestDiffReview(t *testing.T) {
 }
 
 func TestDiffReview_GuideIntegration(t *testing.T) {
+	cfg := config.DefaultConfig()
 	// Test that guides are properly integrated into the prompt
 	diffData := &git.DiffData{
 		FilePath: "test.page.tsx", // Use a file that matches default patterns
@@ -180,7 +183,7 @@ func TestDiffReview_GuideIntegration(t *testing.T) {
 		},
 	}
 
-	result, err := DiffReview(diffData, "test.page.tsx")
+	result, err := DiffReview(cfg, diffData, "test.page.tsx")
 	if err != nil {
 		t.Fatalf("DiffReview() failed: %v", err)
 	}
@@ -191,9 +194,13 @@ func TestDiffReview_GuideIntegration(t *testing.T) {
 	if !strings.Contains(result, "You are an expert code reviewer") {
 		t.Error("DiffReview() should generate valid prompt")
 	}
+	if strings.Contains(result, "**Architecture Guides:**") {
+		t.Error("Default config should not find any guides")
+	}
 }
 
 func TestDiffReview_FallbackToRegularGuides(t *testing.T) {
+	cfg := config.DefaultConfig()
 	// This test verifies that the function falls back to regular guides
 	// when no diff-specific guides are available
 	diffData := &git.DiffData{
@@ -208,7 +215,7 @@ func TestDiffReview_FallbackToRegularGuides(t *testing.T) {
 		},
 	}
 
-	result, err := DiffReview(diffData, "unknown.xyz")
+	result, err := DiffReview(cfg, diffData, "unknown.xyz")
 	if err != nil {
 		t.Fatalf("DiffReview() failed: %v", err)
 	}
@@ -219,40 +226,8 @@ func TestDiffReview_FallbackToRegularGuides(t *testing.T) {
 	}
 }
 
-func TestGetDefaultLegacyConfig(t *testing.T) {
-	cfg := getDefaultLegacyConfig()
-	
-	if cfg == nil {
-		t.Fatal("getDefaultLegacyConfig() returned nil")
-	}
-	
-	if cfg.ContentDefaults.Strategy != "first_lines" {
-		t.Errorf("Expected strategy 'first_lines', got %s", cfg.ContentDefaults.Strategy)
-	}
-	
-	if cfg.ContentDefaults.Lines != 50 {
-		t.Errorf("Expected 50 lines, got %d", cfg.ContentDefaults.Lines)
-	}
-	
-	if len(cfg.Patterns) == 0 {
-		t.Error("Expected some default patterns")
-	}
-	
-	// Check that patterns have expected structure
-	for i, pattern := range cfg.Patterns {
-		if pattern.Name == "" {
-			t.Errorf("Pattern %d has empty name", i)
-		}
-		if pattern.Filename == "" {
-			t.Errorf("Pattern %d (%s) has empty filename pattern", i, pattern.Name)
-		}
-		if len(pattern.Context) == 0 {
-			t.Errorf("Pattern %d (%s) has no context guides", i, pattern.Name)
-		}
-	}
-}
-
 func TestDiffReview_ChangesSummary(t *testing.T) {
+	cfg := config.DefaultConfig()
 	// Test that changes summary is correctly calculated
 	diffData := &git.DiffData{
 		FilePath: "test.go",
@@ -274,7 +249,7 @@ func TestDiffReview_ChangesSummary(t *testing.T) {
 		},
 	}
 
-	result, err := DiffReview(diffData, "test.go")
+	result, err := DiffReview(cfg, diffData, "test.go")
 	if err != nil {
 		t.Fatalf("DiffReview() failed: %v", err)
 	}

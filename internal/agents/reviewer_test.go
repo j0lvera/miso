@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/j0lvera/go-review/internal/config"
 	"github.com/j0lvera/go-review/internal/git"
 )
 
@@ -52,6 +53,7 @@ func TestCodeReviewer_Review(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create reviewer: %v", err)
 	}
+	cfg := config.DefaultConfig()
 
 	tests := []struct {
 		name     string
@@ -81,8 +83,8 @@ func main() {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := reviewer.Review(tt.code, tt.filename)
-			
+			result, err := reviewer.Review(cfg, tt.code, tt.filename)
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Review() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -108,6 +110,7 @@ func TestCodeReviewer_ReviewDiff(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create reviewer: %v", err)
 	}
+	cfg := config.DefaultConfig()
 
 	tests := []struct {
 		name     string
@@ -150,8 +153,8 @@ func TestCodeReviewer_ReviewDiff(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := reviewer.ReviewDiff(tt.diffData, tt.filename)
-			
+			result, err := reviewer.ReviewDiff(cfg, tt.diffData, tt.filename)
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ReviewDiff() error = %v, wantErr %v", err, tt.wantErr)
 				return

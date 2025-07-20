@@ -17,7 +17,7 @@ import (
 	"github.com/j0lvera/miso/internal/resolver"
 )
 
-var version = "dev"
+var version = "0.1.0"
 
 type CLI struct {
 	Config string `short:"c" help:"Path to config file" type:"existingfile"`
@@ -416,7 +416,9 @@ func (d *DiffCmd) Run(cli *CLI) error {
 
 		if formattedContent != "" {
 			fmt.Printf("<details>\n")
-			fmt.Printf("<summary>📝 Review for <strong>%s</strong></summary>\n\n", file)
+			fmt.Printf(
+				"<summary>📝 Review for <strong>%s</strong></summary>\n\n", file,
+			)
 			fmt.Println(formattedContent)
 			fmt.Printf("\n</details>\n")
 		}

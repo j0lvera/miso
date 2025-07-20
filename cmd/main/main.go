@@ -12,6 +12,7 @@ import (
 	"github.com/briandowns/spinner"
 	"github.com/j0lvera/go-review/internal/agents"
 	"github.com/j0lvera/go-review/internal/config"
+	"github.com/j0lvera/go-review/internal/diff"
 	"github.com/j0lvera/go-review/internal/git"
 	"github.com/j0lvera/go-review/internal/resolver"
 )
@@ -236,7 +237,11 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 		return fmt.Errorf("review failed: %w", err)
 	}
 
-	fmt.Println(result.Content)
+	// Format the output to include diffs
+	formatter := diff.NewFormatter()
+	formattedContent := formatter.Format(result.Content)
+
+	fmt.Println(formattedContent)
 	
 	// Display token usage if available
 	if result.TokensUsed > 0 {
@@ -358,6 +363,9 @@ func (d *DiffCmd) Run(cli *CLI) error {
 		return fmt.Errorf("failed to create reviewer: %w", err)
 	}
 
+	// Initialize diff formatter
+	formatter := diff.NewFormatter()
+
 	// Review each changed file
 	totalTokens := 0
 	for _, file := range reviewableFiles {
@@ -397,7 +405,9 @@ func (d *DiffCmd) Run(cli *CLI) error {
 			continue
 		}
 
-		fmt.Println(result.Content)
+		// Format the output to include diffs
+		formattedContent := formatter.Format(result.Content)
+		fmt.Println(formattedContent)
 		
 		if result.TokensUsed > 0 {
 			totalTokens += result.TokensUsed

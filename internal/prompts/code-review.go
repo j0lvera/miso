@@ -55,7 +55,8 @@ Review the code against the provided Architecture Guides. If no guides are provi
 For each issue provide:
 - What's wrong and severity
 - Why it matters
-- How to fix (with code)
+- How to fix. Use this specific format for the fix, with the original code and your suggested change:
+` + "```original\n" + `[the exact code to be replaced]` + "\n```\n" + "```suggestion\n" + `[the new code]` + "\n```" + `
 
 Keep it concise - actionable issues only.
 

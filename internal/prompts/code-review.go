@@ -12,18 +12,21 @@ import (
 func CodeReview(code string, filename string) (string, error) {
 	// Initialize router
 	r := router.NewRouter()
-	
+
 	// Get the guide for this file type
 	guideName := r.GetGuide(filename)
 	guideContent := ""
-	
+
 	if guideName != "" {
 		guidePath := filepath.Join("guides", "react", guideName)
 		if content, err := os.ReadFile(guidePath); err == nil {
-			guideContent = fmt.Sprintf("\n\n**Architecture Guide (%s):**\n%s", guideName, string(content))
+			guideContent = fmt.Sprintf(
+				"\n\n**Architecture Guide (%s):**\n%s", guideName,
+				string(content),
+			)
 		}
 	}
-	
+
 	template := prompts.NewPromptTemplate(
 		`You are an expert Frontend code reviewer specializing in Enterprise React applications. Perform a two-pass review:
 
@@ -66,9 +69,11 @@ File: {{.filename}}{{.guide}}`,
 	)
 
 	// Format the template with the provided values
-	return template.Format(map[string]any{
-		"code":     code,
-		"filename": filename,
-		"guide":    guideContent,
-	})
+	return template.Format(
+		map[string]any{
+			"code":     code,
+			"filename": filename,
+			"guide":    guideContent,
+		},
+	)
 }

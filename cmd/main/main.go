@@ -377,8 +377,6 @@ func (d *DiffCmd) Run(cli *CLI) error {
 	// Review each changed file
 	totalTokens := 0
 	for _, file := range reviewableFiles {
-		fmt.Printf("\n=== Reviewing: %s ===\n", file)
-
 		// Get guides for this file
 		guides, err := res.GetDiffGuides(file)
 		if err != nil {
@@ -415,18 +413,26 @@ func (d *DiffCmd) Run(cli *CLI) error {
 
 		// Format the output to include diffs
 		formattedContent := formatter.Format(result.Content)
-		fmt.Println(formattedContent)
+
+		if formattedContent != "" {
+			fmt.Printf("<details>\n")
+			fmt.Printf("<summary>📝 Review for <strong>%s</strong></summary>\n\n", file)
+			fmt.Println(formattedContent)
+			fmt.Printf("\n</details>\n")
+		}
 
 		if result.TokensUsed > 0 {
 			totalTokens += result.TokensUsed
 		}
 	}
 
-	// Summary
-	fmt.Printf("\n=== Summary ===\n")
-	fmt.Printf("Files reviewed: %d\n", len(reviewableFiles))
-	if totalTokens > 0 {
-		fmt.Printf("Total tokens used: %d\n", totalTokens)
+	// Summary for verbose mode
+	if d.Verbose {
+		fmt.Printf("\n=== Summary ===\n")
+		fmt.Printf("Files reviewed: %d\n", len(reviewableFiles))
+		if totalTokens > 0 {
+			fmt.Printf("Total tokens used: %d\n", totalTokens)
+		}
 	}
 
 	return nil

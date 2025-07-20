@@ -1,4 +1,4 @@
-name: Code Review with go-review
+name: Code Review with Miso
 
 on:
   pull_request:
@@ -21,21 +21,21 @@ jobs:
       with:
         go-version: '1.21'
     
-    - name: Install go-review
+    - name: Install miso
       run: |
-        # Option 1: Install from source (if this is the go-review repo)
-        go build -o go-review cmd/main/main.go
+        # Option 1: Install from source (if this is the miso repo)
+        go build -o miso cmd/main/main.go
         
         # Option 2: Install from release (uncomment when published)
-        # curl -L https://github.com/your-org/go-review/releases/latest/download/go-review-linux-amd64 -o go-review
-        # chmod +x go-review
+        # curl -L https://github.com/your-org/miso/releases/latest/download/miso-linux-amd64 -o miso
+        # chmod +x miso
     
     - name: Validate configuration
       run: |
-        if [ -f "go-review.yml" ] || [ -f ".go-review.yml" ]; then
-          ./go-review validate-config
+        if [ -f "miso.yml" ] || [ -f ".miso.yml" ]; then
+          ./miso validate-config
         else
-          echo "No go-review configuration found, using defaults"
+          echo "No miso configuration found, using defaults"
         fi
     
     - name: Review changed files (PR)
@@ -50,7 +50,7 @@ jobs:
         echo "Reviewing changes between $BASE_SHA and $HEAD_SHA"
         
         # Review the diff
-        ./go-review diff "$BASE_SHA..$HEAD_SHA" > review-output.md
+        ./miso diff "$BASE_SHA..$HEAD_SHA" > review-output.md
         
         # Save review output as artifact
         echo "## 🤖 AI Code Review" > pr-review.md
@@ -65,7 +65,7 @@ jobs:
         echo "Reviewing recent changes in push to ${{ github.ref_name }}"
         
         # Review last commit
-        ./go-review diff "HEAD~1..HEAD" > review-output.md
+        ./miso diff "HEAD~1..HEAD" > review-output.md
         
         echo "## 🤖 AI Code Review - Recent Changes" > push-review.md
         echo "" >> push-review.md
@@ -140,8 +140,8 @@ jobs:
       with:
         go-version: '1.21'
     
-    - name: Build go-review
-      run: go build -o go-review cmd/main/main.go
+    - name: Build miso
+      run: go build -o miso cmd/main/main.go
     
     - name: Test pattern matching
       run: |
@@ -154,6 +154,6 @@ jobs:
         while IFS= read -r file; do
           if [ -f "$file" ]; then
             echo "Testing patterns for: $file"
-            ./go-review test-pattern "$file" -v || true
+            ./miso test-pattern "$file" -v || true
           fi
         done < changed-files.txt

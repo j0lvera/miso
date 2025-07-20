@@ -10,11 +10,14 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
+// GitClient provides an interface for Git operations needed for code review.
+// It wraps go-git functionality to provide diff and commit information.
 type GitClient struct {
 	repo *git.Repository
 }
 
-// NewGitClient creates a new GitClient instance
+// NewGitClient creates a new GitClient instance for the current directory.
+// Returns an error if the current directory is not a Git repository.
 func NewGitClient() (*GitClient, error) {
 	// Debug: print current working directory
 	if os.Getenv("DEBUG") == "true" {
@@ -36,7 +39,8 @@ func NewGitClient() (*GitClient, error) {
 	return &GitClient{repo: repo}, nil
 }
 
-// GetChangedFiles returns list of changed files between two commits or refs
+// GetChangedFiles returns a list of files that changed between two Git references.
+// References can be commit hashes, branch names, or symbolic refs like HEAD.
 func (g *GitClient) GetChangedFiles(baseRef, headRef string) ([]string, error) {
 	// Resolve references to commits
 	baseCommit, err := g.resolveCommit(baseRef)
@@ -70,7 +74,8 @@ func (g *GitClient) GetChangedFiles(baseRef, headRef string) ([]string, error) {
 	return files, nil
 }
 
-// GetFileDiff returns the diff for a specific file
+// GetFileDiff returns the raw diff text for a specific file between two references.
+// The returned string contains the unified diff format suitable for review.
 func (g *GitClient) GetFileDiff(baseRef, headRef, filePath string) (string, error) {
 	baseCommit, err := g.resolveCommit(baseRef)
 	if err != nil {
@@ -101,6 +106,24 @@ func (g *GitClient) GetFileDiff(baseRef, headRef, filePath string) (string, erro
 	}
 
 	return "", fmt.Errorf("no diff found for file: %s", filePath)
+}
+
+// GetFileDiffData returns structured diff information for a specific file.
+// The returned DiffData contains parsed hunks, line changes, and metadata.
+func (g *GitClient) GetFileDiffData(baseRef, headRef, filePath string) (*DiffData, error) {
+	// Get the raw diff first
+	rawDiff, err := g.GetFileDiff(baseRef, headRef, filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse the raw diff into structured data
+	diffData, err := ParseDiff(rawDiff, filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse diff for %s: %w", filePath, err)
+	}
+
+	return diffData, nil
 }
 
 // resolveCommit resolves a reference string to a commit object
@@ -160,7 +183,9 @@ func (g *GitClient) resolveCommit(ref string) (*object.Commit, error) {
 	return nil, fmt.Errorf("unable to resolve reference: %s", ref)
 }
 
-// ParseGitRange parses a git range like "main..feature" or "HEAD~1"
+// ParseGitRange parses a Git range specification into base and head references.
+// Supports formats like "main..feature", "HEAD~1", or single references.
+// Returns "HEAD~1" and "HEAD" as defaults for empty input.
 func ParseGitRange(rangeStr string) (base, head string) {
 	if rangeStr == "" {
 		return "HEAD~1", "HEAD"

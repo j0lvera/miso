@@ -2,28 +2,93 @@ package prompts
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+	"strings"
 
-	"github.com/j0lvera/go-review/internal/router"
+	"github.com/j0lvera/go-review/internal/config"
+	"github.com/j0lvera/go-review/internal/resolver"
 	"github.com/tmc/langchaingo/prompts"
 )
 
+// getDefaultLegacyConfig returns a config with the old router patterns for backward compatibility
+func getDefaultLegacyConfig() *config.Config {
+	return &config.Config{
+		ContentDefaults: config.ContentDefaults{
+			Strategy: "first_lines",
+			Lines:    50,
+		},
+		Patterns: []config.Pattern{
+			{
+				Name:     "react-pages",
+				Filename: `\.page\.(ts|tsx)$`,
+				Context:  []string{"page.md"},
+			},
+			{
+				Name:     "react-constants",
+				Filename: `\.const\.(ts|tsx)$`,
+				Context:  []string{"const.md"},
+			},
+			{
+				Name:     "react-utils",
+				Filename: `\.utils\.(ts|tsx)$`,
+				Context:  []string{"utils.md"},
+			},
+			{
+				Name:     "react-hooks",
+				Filename: `\.hooks\.(ts|tsx)$`,
+				Context:  []string{"hooks.md"},
+			},
+			{
+				Name:     "react-lists",
+				Filename: `\.list\.(ts|tsx)$`,
+				Context:  []string{"list.md"},
+			},
+			{
+				Name:     "react-details",
+				Filename: `\.detail\.(ts|tsx)$`,
+				Context:  []string{"detail.md"},
+			},
+			{
+				Name:     "react-forms",
+				Filename: `\.form\.(ts|tsx)$`,
+				Context:  []string{"form.md"},
+			},
+			{
+				Name:     "react-tables",
+				Filename: `\.table\.(ts|tsx)$`,
+				Context:  []string{"table.md"},
+			},
+		},
+	}
+}
+
 func CodeReview(code string, filename string) (string, error) {
-	// Initialize router
-	r := router.NewRouter()
+	// Try to load configuration
+	parser := config.NewParser()
+	cfg, err := parser.Load()
+	if err != nil || len(cfg.Patterns) == 0 {
+		// Use default legacy config for backward compatibility
+		cfg = getDefaultLegacyConfig()
+	}
 
-	// Get the guide for this file type
-	guideName := r.GetGuide(filename)
-	guideContent := ""
+	// Use resolver
+	res := resolver.NewResolver(cfg)
+	guides, err := res.GetGuides(filename)
+	if err != nil {
+		return "", fmt.Errorf("failed to get guides: %w", err)
+	}
 
-	if guideName != "" {
-		guidePath := filepath.Join("guides", "react", guideName)
-		if content, err := os.ReadFile(guidePath); err == nil {
-			guideContent = fmt.Sprintf(
-				"\n\n**Architecture Guide (%s):**\n%s", guideName,
-				string(content),
-			)
+	// Load guide content
+	guideContent, err := res.LoadGuideContent(guides)
+	if err != nil {
+		return "", fmt.Errorf("failed to load guide content: %w", err)
+	}
+
+	// Combine all guide content
+	var combinedGuides strings.Builder
+	if len(guideContent) > 0 {
+		combinedGuides.WriteString("\n\n**Architecture Guides:**\n")
+		for guideName, content := range guideContent {
+			combinedGuides.WriteString(fmt.Sprintf("\n=== %s ===\n%s\n", guideName, content))
 		}
 	}
 
@@ -73,7 +138,8 @@ File: {{.filename}}{{.guide}}`,
 		map[string]any{
 			"code":     code,
 			"filename": filename,
-			"guide":    guideContent,
+			"guide":    combinedGuides.String(),
 		},
 	)
 }
+

@@ -1,0 +1,159 @@
+name: Code Review with go-review
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main ]
+
+jobs:
+  code-review:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch full history for diff analysis
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Install go-review
+      run: |
+        # Option 1: Install from source (if this is the go-review repo)
+        go build -o go-review cmd/main/main.go
+        
+        # Option 2: Install from release (uncomment when published)
+        # curl -L https://github.com/your-org/go-review/releases/latest/download/go-review-linux-amd64 -o go-review
+        # chmod +x go-review
+    
+    - name: Validate configuration
+      run: |
+        if [ -f "go-review.yml" ] || [ -f ".go-review.yml" ]; then
+          ./go-review validate-config
+        else
+          echo "No go-review configuration found, using defaults"
+        fi
+    
+    - name: Review changed files (PR)
+      if: github.event_name == 'pull_request'
+      env:
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      run: |
+        # Get the base branch for comparison
+        BASE_SHA="${{ github.event.pull_request.base.sha }}"
+        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        
+        echo "Reviewing changes between $BASE_SHA and $HEAD_SHA"
+        
+        # Review the diff
+        ./go-review diff "$BASE_SHA..$HEAD_SHA" > review-output.md
+        
+        # Save review output as artifact
+        echo "## 🤖 AI Code Review" > pr-review.md
+        echo "" >> pr-review.md
+        cat review-output.md >> pr-review.md
+    
+    - name: Review recent changes (Push)
+      if: github.event_name == 'push'
+      env:
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      run: |
+        echo "Reviewing recent changes in push to ${{ github.ref_name }}"
+        
+        # Review last commit
+        ./go-review diff "HEAD~1..HEAD" > review-output.md
+        
+        echo "## 🤖 AI Code Review - Recent Changes" > push-review.md
+        echo "" >> push-review.md
+        cat review-output.md >> push-review.md
+    
+    - name: Comment on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          // Read the review output
+          let reviewContent = '';
+          try {
+            reviewContent = fs.readFileSync('pr-review.md', 'utf8');
+          } catch (error) {
+            reviewContent = '## 🤖 AI Code Review\n\nNo review content generated.';
+          }
+          
+          // Find existing review comment
+          const comments = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          
+          const botComment = comments.data.find(comment => 
+            comment.user.type === 'Bot' && 
+            comment.body.includes('🤖 AI Code Review')
+          );
+          
+          if (botComment) {
+            // Update existing comment
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: reviewContent
+            });
+          } else {
+            // Create new comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: reviewContent
+            });
+          }
+    
+    - name: Upload review artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: code-review-output
+        path: |
+          *-review.md
+          review-output.md
+        retention-days: 30
+
+  # Optional: Separate job for configuration testing
+  test-patterns:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Build go-review
+      run: go build -o go-review cmd/main/main.go
+    
+    - name: Test pattern matching
+      run: |
+        echo "Testing pattern matching on changed files..."
+        
+        # Get list of changed files
+        git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} > changed-files.txt
+        
+        # Test each changed file against patterns
+        while IFS= read -r file; do
+          if [ -f "$file" ]; then
+            echo "Testing patterns for: $file"
+            ./go-review test-pattern "$file" -v || true
+          fi
+        done < changed-files.txt

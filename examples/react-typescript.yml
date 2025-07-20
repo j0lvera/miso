@@ -1,0 +1,57 @@
+# Example configuration for React/TypeScript projects
+content_defaults:
+  strategy: "first_lines"
+  lines: 30
+
+patterns:
+  # TypeScript React components
+  - name: "react-components"
+    filename: "\\.(tsx|jsx)$"
+    content: "import.*react|from ['\"]react"
+    context:
+      - react/components.md
+      - typescript.md
+    diff_context:
+      - diff/breaking-changes.md
+      - diff/performance-impact.md
+      - react/components.md
+
+  # React hooks
+  - name: "react-hooks"
+    filename: "use[A-Z].*\\.(ts|tsx)$"
+    context:
+      - react/hooks.md
+      - typescript.md
+    diff_context:
+      - diff/breaking-changes.md
+      - react/hooks.md
+
+  # API routes/endpoints
+  - name: "api-routes"
+    filename: "/api/|/routes/"
+    context:
+      - api.md
+      - validation.md
+    diff_context:
+      - diff/breaking-changes.md
+      - diff/security-review.md
+      - api.md
+
+  # Test files
+  - name: "test-files"
+    filename: "\\.(test|spec)\\.(ts|tsx|js|jsx)$"
+    context:
+      - testing.md
+    diff_context:
+      - diff/breaking-changes.md
+      - testing.md
+    stop: true
+
+  # Configuration files
+  - name: "config-files"
+    filename: "package\\.json|tsconfig\\.json|\\.env"
+    context:
+      - configuration.md
+    diff_context:
+      - diff/breaking-changes.md
+      - configuration.md

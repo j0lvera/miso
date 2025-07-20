@@ -1,0 +1,157 @@
+name: Advanced Code Review
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: 'Target branch for review'
+        required: true
+        default: 'main'
+      review_scope:
+        description: 'Review scope'
+        required: true
+        default: 'diff'
+        type: choice
+        options:
+        - diff
+        - full
+        - security-only
+
+jobs:
+  advanced-review:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        review-type: [security, performance, general]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Install go-review
+      run: go build -o go-review cmd/main/main.go
+    
+    - name: Create specialized config
+      run: |
+        cat > go-review-${{ matrix.review-type }}.yml << EOF
+        content_defaults:
+          strategy: "smart"
+          lines: 100
+        
+        patterns:
+        EOF
+        
+        case "${{ matrix.review-type }}" in
+          security)
+            cat >> go-review-${{ matrix.review-type }}.yml << EOF
+          - name: "security-sensitive"
+            content: "password|token|secret|auth|crypto|jwt|session|api_key"
+            content_strategy: "full_file"
+            diff_context:
+              - diff/security-review.md
+            stop: true
+          
+          - name: "input-validation"
+            content: "input|request|param|query|form"
+            diff_context:
+              - diff/security-review.md
+        EOF
+            ;;
+          performance)
+            cat >> go-review-${{ matrix.review-type }}.yml << EOF
+          - name: "database-queries"
+            content: "SELECT|INSERT|UPDATE|DELETE|query|Query"
+            diff_context:
+              - diff/performance-impact.md
+            stop: true
+          
+          - name: "loops-and-algorithms"
+            content: "for|while|range|map|filter|reduce"
+            diff_context:
+              - diff/performance-impact.md
+        EOF
+            ;;
+          general)
+            cat >> go-review-${{ matrix.review-type }}.yml << EOF
+          - name: "all-files"
+            filename: "\\.(go|ts|js|py|java|cpp|c)$"
+            diff_context:
+              - diff/breaking-changes.md
+        EOF
+            ;;
+        esac
+    
+    - name: Run specialized review
+      env:
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      run: |
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          RANGE="$BASE_SHA..$HEAD_SHA"
+        else
+          RANGE="${{ github.event.inputs.target_branch }}..HEAD"
+        fi
+        
+        echo "Running ${{ matrix.review-type }} review for range: $RANGE"
+        
+        ./go-review diff "$RANGE" \
+          --config go-review-${{ matrix.review-type }}.yml \
+          > ${{ matrix.review-type }}-review.md
+    
+    - name: Upload specialized review
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.review-type }}-review
+        path: ${{ matrix.review-type }}-review.md
+
+  combine-reviews:
+    needs: advanced-review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Download all reviews
+      uses: actions/download-artifact@v3
+    
+    - name: Combine reviews
+      run: |
+        echo "# 🤖 Comprehensive AI Code Review" > combined-review.md
+        echo "" >> combined-review.md
+        echo "This review covers multiple aspects of your code changes:" >> combined-review.md
+        echo "" >> combined-review.md
+        
+        for review_type in security performance general; do
+          if [ -f "${review_type}-review/${review_type}-review.md" ]; then
+            echo "## 🔍 ${review_type^} Review" >> combined-review.md
+            echo "" >> combined-review.md
+            cat "${review_type}-review/${review_type}-review.md" >> combined-review.md
+            echo "" >> combined-review.md
+            echo "---" >> combined-review.md
+            echo "" >> combined-review.md
+          fi
+        done
+    
+    - name: Comment combined review
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const reviewContent = fs.readFileSync('combined-review.md', 'utf8');
+          
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: reviewContent
+          });

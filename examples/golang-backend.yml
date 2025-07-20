@@ -1,0 +1,78 @@
+# Example configuration for Go backend projects
+content_defaults:
+  strategy: "smart"
+  lines: [50, 50, 25]  # First 50, last 50, 25 random lines
+
+patterns:
+  # Go test files
+  - name: "go-tests"
+    filename: "_test\\.go$"
+    context:
+      - go/testing.md
+      - go/benchmarks.md
+    diff_context:
+      - diff/breaking-changes.md
+      - go/testing.md
+    stop: true
+
+  # Main application files
+  - name: "main-files"
+    filename: "main\\.go$|cmd/"
+    context:
+      - go/main.md
+      - go/cli.md
+    diff_context:
+      - diff/breaking-changes.md
+      - go/main.md
+
+  # HTTP handlers and middleware
+  - name: "http-handlers"
+    filename: "/handlers/|/middleware/"
+    context:
+      - go/http.md
+      - security.md
+    diff_context:
+      - diff/security-review.md
+      - diff/performance-impact.md
+      - go/http.md
+
+  # Database models and repositories
+  - name: "database-layer"
+    filename: "/models/|/repository/|/db/"
+    content: "gorm\\.|sql\\.|database"
+    context:
+      - go/database.md
+      - sql.md
+    diff_context:
+      - diff/breaking-changes.md
+      - diff/performance-impact.md
+      - go/database.md
+
+  # Service layer
+  - name: "services"
+    filename: "/services/|/business/"
+    context:
+      - go/services.md
+      - architecture.md
+    diff_context:
+      - diff/breaking-changes.md
+      - go/services.md
+
+  # Configuration and environment
+  - name: "config"
+    filename: "config|environment|\\.env"
+    context:
+      - configuration.md
+    diff_context:
+      - diff/breaking-changes.md
+      - diff/security-review.md
+      - configuration.md
+
+  # Docker and deployment
+  - name: "deployment"
+    filename: "Dockerfile|docker-compose|\\.yml$"
+    context:
+      - deployment.md
+    diff_context:
+      - diff/breaking-changes.md
+      - deployment.md

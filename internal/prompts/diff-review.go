@@ -10,15 +10,7 @@ import (
 	"github.com/tmc/langchaingo/prompts"
 )
 
-func DiffReview(diffData *git.DiffData, filename string) (string, error) {
-	// Try to load configuration
-	parser := config.NewParser()
-	cfg, err := parser.Load()
-	if err != nil || len(cfg.Patterns) == 0 {
-		// Use default legacy config for backward compatibility
-		cfg = getDefaultLegacyConfig()
-	}
-
+func DiffReview(cfg *config.Config, diffData *git.DiffData, filename string) (string, error) {
 	// Use resolver to get diff-specific guides
 	res := resolver.NewResolver(cfg)
 	guides, err := res.GetDiffGuides(filename)

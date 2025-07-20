@@ -61,15 +61,7 @@ func getDefaultLegacyConfig() *config.Config {
 	}
 }
 
-func CodeReview(code string, filename string) (string, error) {
-	// Try to load configuration
-	parser := config.NewParser()
-	cfg, err := parser.Load()
-	if err != nil || len(cfg.Patterns) == 0 {
-		// Use default legacy config for backward compatibility
-		cfg = getDefaultLegacyConfig()
-	}
-
+func CodeReview(cfg *config.Config, code string, filename string) (string, error) {
 	// Use resolver
 	res := resolver.NewResolver(cfg)
 	guides, err := res.GetGuides(filename)

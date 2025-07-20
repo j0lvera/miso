@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/j0lvera/go-review/internal/config"
 	"github.com/j0lvera/go-review/internal/git"
 	"github.com/j0lvera/go-review/internal/prompts"
 	"github.com/tmc/langchaingo/llms"
@@ -53,9 +54,9 @@ func NewCodeReviewer() (*CodeReviewer, error) {
 
 // Review performs a comprehensive code review on the provided code.
 // Uses configured review guides and patterns to provide contextual feedback.
-func (cr *CodeReviewer) Review(code string, filename string) (*ReviewResult, error) {
+func (cr *CodeReviewer) Review(cfg *config.Config, code string, filename string) (*ReviewResult, error) {
 	// Get the formatted prompt
-	prompt, err := prompts.CodeReview(code, filename)
+	prompt, err := prompts.CodeReview(cfg, code, filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to format prompt: %w", err)
 	}
@@ -65,9 +66,9 @@ func (cr *CodeReviewer) Review(code string, filename string) (*ReviewResult, err
 
 // ReviewDiff performs a focused code review on the provided diff data.
 // Analyzes only the changes rather than the full file, using diff-specific guides.
-func (cr *CodeReviewer) ReviewDiff(diffData *git.DiffData, filename string) (*ReviewResult, error) {
+func (cr *CodeReviewer) ReviewDiff(cfg *config.Config, diffData *git.DiffData, filename string) (*ReviewResult, error) {
 	// Get the formatted diff prompt
-	prompt, err := prompts.DiffReview(diffData, filename)
+	prompt, err := prompts.DiffReview(cfg, diffData, filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to format diff prompt: %w", err)
 	}

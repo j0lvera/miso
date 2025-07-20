@@ -225,7 +225,7 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 	s.Start()
 
 	// Perform review
-	result, err := reviewer.Review(string(content), filename)
+	result, err := reviewer.Review(cfg, string(content), filename)
 	
 	// Stop spinner
 	s.Stop()
@@ -385,7 +385,7 @@ func (d *DiffCmd) Run(cli *CLI) error {
 		s.Start()
 
 		// Perform diff review (reviewing only the changes)
-		result, err := reviewer.ReviewDiff(diffData, file)
+		result, err := reviewer.ReviewDiff(cfg, diffData, file)
 		
 		// Stop spinner
 		s.Stop()

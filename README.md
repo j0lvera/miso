@@ -1,6 +1,6 @@
 # go-review
 
-An AI-powered code review tool that provides intelligent feedback on your code using OpenAI models via OpenRouter.
+An AI-powered code review tool that provides intelligent feedback on your code using Claude via OpenRouter. The tool is designed to be model-agnostic and can work with any OpenAI-compatible API through OpenRouter.
 
 ## What it does
 

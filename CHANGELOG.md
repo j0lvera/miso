@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Use `GITHUB_TOKEN` in `install.sh` to avoid API rate limits in CI.
 - Adjust install script to use lowercase OS names to match GoReleaser artifacts.
 - Adjust install script to remove `v` prefix from version for tarball filename.
 

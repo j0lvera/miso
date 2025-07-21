@@ -42,7 +42,13 @@ main() {
   else
     # Get the latest release tag from the GitHub API
     LATEST_RELEASE_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
-    RELEASE_JSON=$(curl -s "$LATEST_RELEASE_URL")
+
+    # Use GITHUB_TOKEN for authenticated requests to avoid rate limits, especially in CI
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+      RELEASE_JSON=$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" "$LATEST_RELEASE_URL")
+    else
+      RELEASE_JSON=$(curl -s "$LATEST_RELEASE_URL")
+    fi
 
     # Check if a release was found
     if echo "$RELEASE_JSON" | grep -q '"message": "Not Found"'; then

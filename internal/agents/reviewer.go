@@ -12,6 +12,11 @@ import (
 	"github.com/tmc/langchaingo/llms/openai"
 )
 
+const (
+	website = "https://github.com/j0lvera/miso"
+	name    = "miso"
+)
+
 // ReviewResult holds the review content and token usage information from an LLM call.
 // Provides details about the review content and associated costs.
 type ReviewResult struct {
@@ -39,8 +44,8 @@ func NewCodeReviewer() (*CodeReviewer, error) {
 
 	// Set custom headers for OpenRouter
 	headers := map[string]string{
-		"HTTP-Referer": "https://github.com/j0lvera/miso",
-		"X-Title":      "miso",
+		"HTTP-Referer": website,
+		"X-Title":      name,
 	}
 
 	// Configure for OpenRouter

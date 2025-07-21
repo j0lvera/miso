@@ -7,12 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- Add `install.sh` script for easy installation via curl.
-
+## [0.2.1] - 2025-07-22
 ### Fixed
+- Add LICENSE file to fix GoReleaser build.
 
+## [0.2.0] - 2025-07-21
+### Added
+- Add `install.sh` script for easy installation via curl.
+### Fixed
 - Grant `pull-requests: write` permission to workflow to allow PR comments.
 - Add `context` key to `miso.yml` to support non-diff reviews.
 - Make `validate-config` command argument optional to support CI usage.
@@ -29,5 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Action for automating code reviews on pull requests.
 - Self-review capability for the miso codebase using a Go practices guide.
 
-[unreleased]: https://github.com/j0lvera/miso/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/j0lvera/miso/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/j0lvera/miso/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/j0lvera/miso/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/j0lvera/miso/releases/tag/v0.1.0  

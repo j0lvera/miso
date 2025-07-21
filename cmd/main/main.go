@@ -19,6 +19,11 @@ import (
 
 var version = "0.1.0"
 
+const (
+	spinnerCharSet     = 14
+	spinnerRefreshRate = 100 * time.Millisecond
+)
+
 type CLI struct {
 	Config string `short:"c" help:"Path to config file" type:"existingfile"`
 
@@ -227,7 +232,7 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 	filename := filepath.Base(r.File)
 
 	// Create and start spinner
-	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	s := spinner.New(spinner.CharSets[spinnerCharSet], spinnerRefreshRate)
 	s.Suffix = " " + r.Message
 	s.Start()
 
@@ -396,7 +401,7 @@ func (d *DiffCmd) Run(cli *CLI) error {
 		}
 
 		// Create spinner
-		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+		s := spinner.New(spinner.CharSets[spinnerCharSet], spinnerRefreshRate)
 		s.Suffix = " " + d.Message
 		s.Start()
 

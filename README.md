@@ -6,6 +6,16 @@
 - **Git diff review**: Analyze changes between git commits or branches
 - **File-specific guides**: Uses tailored review guidelines based on file naming patterns (e.g., `.page.tsx`, `.utils.ts`, `.hooks.ts`)
 
+## Installation
+
+You can install `miso` using the following command. This will install the latest version for your operating system and add it to your shell's path.
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/j0lvera/miso/main/install.sh | bash
+```
+
+After installation, you may need to restart your shell or run `source ~/.bashrc` (or `~/.zshrc`) for the `miso` command to be available.
+
 ## Usage
 
 ### Prerequisites

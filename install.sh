@@ -42,9 +42,18 @@ main() {
   else
     # Get the latest release tag from the GitHub API
     LATEST_RELEASE_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
-    VERSION=$(curl -s "$LATEST_RELEASE_URL" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+    RELEASE_JSON=$(curl -s "$LATEST_RELEASE_URL")
+
+    # Check if a release was found
+    if echo "$RELEASE_JSON" | grep -q '"message": "Not Found"'; then
+      echo "Error: No releases found for ${REPO_OWNER}/${REPO_NAME}."
+      echo "Please create a release on GitHub before using the install script."
+      exit 1
+    fi
+
+    VERSION=$(echo "$RELEASE_JSON" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     if [ -z "$VERSION" ]; then
-      echo "Error: Could not determine the latest release version."
+      echo "Error: Could not determine the latest release version from the API response."
       exit 1
     fi
   fi

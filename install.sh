@@ -19,8 +19,8 @@ main() {
 
   # Map OS and arch to the naming convention used by GoReleaser
   case $OS in
-    Linux) OS_NAME="Linux" ;;
-    Darwin) OS_NAME="Darwin" ;;
+    Linux) OS_NAME="linux" ;;
+    Darwin) OS_NAME="darwin" ;;
     *)
       echo "Error: Unsupported OS: $OS"
       exit 1

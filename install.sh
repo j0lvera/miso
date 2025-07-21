@@ -86,17 +86,34 @@ main() {
 
   # Add to PATH if not already there
   SHELL_PROFILE=""
+  INSTALL_PATH_CMD=""
   case $SHELL in
-    */bash) SHELL_PROFILE="$HOME/.bashrc" ;;
-    */zsh) SHELL_PROFILE="$HOME/.zshrc" ;;
-    *) SHELL_PROFILE="$HOME/.profile" ;;
+    */bash)
+      SHELL_PROFILE="$HOME/.bashrc"
+      INSTALL_PATH_CMD="export PATH=\"${INSTALL_DIR}/bin:\$PATH\""
+      ;;
+    */zsh)
+      SHELL_PROFILE="$HOME/.zshrc"
+      INSTALL_PATH_CMD="export PATH=\"${INSTALL_DIR}/bin:\$PATH\""
+      ;;
+    */fish)
+      SHELL_PROFILE="$HOME/.config/fish/config.fish"
+      INSTALL_PATH_CMD="fish_add_path \"${INSTALL_DIR}/bin\""
+      ;;
+    *)
+      SHELL_PROFILE="$HOME/.profile"
+      INSTALL_PATH_CMD="export PATH=\"${INSTALL_DIR}/bin:\$PATH\""
+      ;;
   esac
 
-  if ! grep -q "export PATH=\"${INSTALL_DIR}/bin:\$PATH\"" "$SHELL_PROFILE" 2>/dev/null; then
+  if ! grep -q "${INSTALL_DIR}/bin" "$SHELL_PROFILE" 2>/dev/null; then
     echo "Adding ${BINARY_NAME} to your PATH in ${SHELL_PROFILE}..."
+    if [[ "$SHELL" == */fish ]]; then
+      mkdir -p "$(dirname "$SHELL_PROFILE")"
+    fi
     echo "" >> "$SHELL_PROFILE"
     echo "# miso CLI" >> "$SHELL_PROFILE"
-    echo "export PATH=\"${INSTALL_DIR}/bin:\$PATH\"" >> "$SHELL_PROFILE"
+    echo "$INSTALL_PATH_CMD" >> "$SHELL_PROFILE"
     echo ""
     echo "Please restart your shell or run 'source ${SHELL_PROFILE}' to apply the changes."
   else

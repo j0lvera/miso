@@ -9,6 +9,8 @@ on:
 jobs:
   code-review:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write # Required to comment on PRs
     
     steps:
     - name: Checkout code
@@ -138,35 +140,3 @@ jobs:
           *-review.md
           review-output.md
         retention-days: 30
-
-  # Optional: Separate job for configuration testing
-  test-patterns:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.21'
-    
-    - name: Build miso
-      run: go build -o miso cmd/main/main.go
-    
-    - name: Test pattern matching
-      run: |
-        echo "Testing pattern matching on changed files..."
-        
-        # Get list of changed files
-        git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} > changed-files.txt
-        
-        # Test each changed file against patterns
-        while IFS= read -r file; do
-          if [ -f "$file" ]; then
-            echo "Testing patterns for: $file"
-            ./miso test-pattern "$file" -v || true
-          fi
-        done < changed-files.txt

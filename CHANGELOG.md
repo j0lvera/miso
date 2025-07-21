@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Make `validate-config` command argument optional to support CI usage.
+- Handle initial commit in `push` workflow to prevent diff errors.
+
 ## [0.1.0] - 2024-05-22
 
 ### Added

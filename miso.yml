@@ -2,5 +2,7 @@
 patterns:
   - name: "go-source-files"
     filename: "\\.go$"
+    context:
+      - "go-good-practices.md"
     diff_context:
       - "go-good-practices.md"

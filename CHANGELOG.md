@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Refactor OpenRouter headers to use constants.
+
 ## [0.3.2] - 2025-07-22
 ### Fixed
 - Use `amd64` for x86_64 architecture in `install.sh` to match GoReleaser artifacts.

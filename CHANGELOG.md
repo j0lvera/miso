@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2025-07-22
+
+### Fixed
+
+- Use `GITHUB_TOKEN` in `install.sh` to avoid API rate limits in CI.
+
 ## [0.3.0] - 2025-07-22
 
 ### Added
@@ -15,7 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Use `GITHUB_TOKEN` in `install.sh` to avoid API rate limits in CI.
 - Adjust install script to use lowercase OS names to match GoReleaser artifacts.
 - Adjust install script to remove `v` prefix from version for tarball filename.
 
@@ -43,7 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Action for automating code reviews on pull requests.
 - Self-review capability for the miso codebase using a Go practices guide.
 
-[unreleased]: https://github.com/j0lvera/miso/compare/v0.3.0...HEAD
+[unreleased]: https://github.com/j0lvera/miso/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/j0lvera/miso/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/j0lvera/miso/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/j0lvera/miso/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/j0lvera/miso/compare/v0.1.0...v0.2.0

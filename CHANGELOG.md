@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `fish` shell support to the installation script.
+
+### Fixed
+
+- Adjust install script to use lowercase OS names to match GoReleaser artifacts.
+- Adjust install script to remove `v` prefix from version for tarball filename.
+
 ## [0.2.1] - 2025-07-22
 ### Fixed
 - Add LICENSE file to fix GoReleaser build.

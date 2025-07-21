@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `install.sh` script for easy installation via curl.
+
 ### Fixed
 
 - Grant `pull-requests: write` permission to workflow to allow PR comments.

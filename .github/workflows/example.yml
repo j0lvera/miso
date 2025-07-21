@@ -64,8 +64,17 @@ jobs:
       run: |
         echo "Reviewing recent changes in push to ${{ github.ref_name }}"
         
-        # Review last commit
-        ./miso diff "HEAD~1..HEAD" > review-output.md
+        # Determine the base for the diff. On the first commit, HEAD~1 doesn't exist.
+        if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+          BASE_REF="HEAD~1"
+        else
+          # Use the empty tree hash for the initial commit
+          BASE_REF=$(git hash-object -t tree /dev/null)
+          echo "Initial commit detected. Comparing against empty tree."
+        fi
+        
+        # Review the diff
+        ./miso diff "${BASE_REF}..HEAD" > review-output.md
         
         echo "## 🤖 AI Code Review - Recent Changes" > push-review.md
         echo "" >> push-review.md

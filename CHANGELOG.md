@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Add `context` key to `miso.yml` to support non-diff reviews.
 - Make `validate-config` command argument optional to support CI usage.
 - Handle initial commit in `push` workflow to prevent diff errors.
 

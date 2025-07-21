@@ -37,11 +37,18 @@ func NewCodeReviewer() (*CodeReviewer, error) {
 		return nil, fmt.Errorf("OPENROUTER_API_KEY environment variable is not set")
 	}
 
+	// Set custom headers for OpenRouter
+	headers := map[string]string{
+		"HTTP-Referer": "https://github.com/j0lvera/miso",
+		"X-Title":      "miso",
+	}
+
 	// Configure for OpenRouter
 	llm, err := openai.New(
 		openai.WithToken(apiKey),
 		openai.WithBaseURL("https://openrouter.ai/api/v1"),
 		openai.WithModel("anthropic/claude-3.5-sonnet"),
+		openai.WithSetCustomHeader(headers),
 	)
 	if err != nil {
 		return nil, fmt.Errorf(

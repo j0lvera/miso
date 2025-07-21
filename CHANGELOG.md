@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2025-07-22
+### Fixed
+- Use `amd64` for x86_64 architecture in `install.sh` to match GoReleaser artifacts.
+
 ## [0.3.1] - 2025-07-22
 
 ### Fixed
@@ -48,7 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Action for automating code reviews on pull requests.
 - Self-review capability for the miso codebase using a Go practices guide.
 
-[unreleased]: https://github.com/j0lvera/miso/compare/v0.3.1...HEAD
+[unreleased]: https://github.com/j0lvera/miso/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/j0lvera/miso/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/j0lvera/miso/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/j0lvera/miso/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/j0lvera/miso/compare/v0.2.0...v0.2.1

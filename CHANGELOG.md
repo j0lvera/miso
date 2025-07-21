@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `install.sh` script for easy installation via curl.
+
 ### Fixed
 
+- Grant `pull-requests: write` permission to workflow to allow PR comments.
 - Add `context` key to `miso.yml` to support non-diff reviews.
 - Make `validate-config` command argument optional to support CI usage.
 - Handle initial commit in `push` workflow to prevent diff errors.

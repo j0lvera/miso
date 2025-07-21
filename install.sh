@@ -28,7 +28,7 @@ main() {
   esac
 
   case $ARCH in
-    x86_64 | amd64) ARCH_NAME="x86_64" ;;
+    x86_64 | amd64) ARCH_NAME="amd64" ;;
     arm64 | aarch64) ARCH_NAME="arm64" ;;
     *)
       echo "Error: Unsupported architecture: $ARCH"

@@ -59,7 +59,7 @@ main() {
   fi
 
   # Construct the download URL
-  TARBALL_NAME="${BINARY_NAME}_${OS_NAME}_${ARCH_NAME}.tar.gz"
+  TARBALL_NAME="${BINARY_NAME}_${VERSION}_${OS_NAME}_${ARCH_NAME}.tar.gz"
   DOWNLOAD_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${VERSION}/${TARBALL_NAME}"
 
   echo "Installing ${BINARY_NAME} version ${VERSION} for ${OS_NAME}/${ARCH_NAME}..."

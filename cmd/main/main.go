@@ -274,8 +274,8 @@ type DiffCmd struct {
 	DryRun  bool   `short:"d" help:"Show what would be reviewed without calling LLM"`
 }
 
-type ValidateConfigCmd struct {
-	Config string `arg:"" help:"Path to config file to validate" type:"existingfile"`
+type ValidateConfig_Cmd struct {
+	Config string `arg:"" optional:"" help:"Path to config file to validate" type:"existingfile"`
 }
 
 type TestPatternCmd struct {

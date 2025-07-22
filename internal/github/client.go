@@ -87,21 +87,28 @@ func (c *Client) FindBotComment(prNumber int, identifier string) (*github.IssueC
 		ListOptions: github.ListOptions{PerPage: 100},
 	}
 
-	comments, _, err := c.client.Issues.ListComments(
-		c.ctx, c.owner, c.repo, prNumber, opts,
-	)
-	if err != nil {
-		if _, ok := err.(*github.RateLimitError); ok {
-			return nil, fmt.Errorf("GitHub API rate limit exceeded, please try again later")
+	for {
+		comments, resp, err := c.client.Issues.ListComments(
+			c.ctx, c.owner, c.repo, prNumber, opts,
+		)
+		if err != nil {
+			if _, ok := err.(*github.RateLimitError); ok {
+				return nil, fmt.Errorf("GitHub API rate limit exceeded, please try again later")
+			}
+			return nil, err
 		}
-		return nil, err
-	}
 
-	for _, comment := range comments {
-		if comment.User.GetType() == "Bot" &&
-			strings.Contains(comment.GetBody(), identifier) {
-			return comment, nil
+		for _, comment := range comments {
+			if comment.User != nil && comment.User.GetType() == "Bot" &&
+				strings.Contains(comment.GetBody(), identifier) {
+				return comment, nil
+			}
 		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
 	}
 
 	return nil, nil

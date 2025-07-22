@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -16,6 +17,7 @@ import (
 	"github.com/j0lvera/miso/internal/config"
 	"github.com/j0lvera/miso/internal/diff"
 	"github.com/j0lvera/miso/internal/git"
+	misoGithub "github.com/j0lvera/miso/internal/github"
 	"github.com/j0lvera/miso/internal/resolver"
 )
 
@@ -33,6 +35,7 @@ type CLI struct {
 	Diff           DiffCmd           `cmd:"" help:"Review changes in a git diff"`
 	ValidateConfig ValidateConfigCmd `cmd:"" help:"Validate configuration file"`
 	TestPattern    TestPatternCmd    `cmd:"" help:"Test which patterns match a file"`
+	GitHub         GitHubCmd         `cmd:"" help:"GitHub integration commands"`
 	Version        VersionCmd        `cmd:"" help:"Show version"`
 }
 
@@ -300,6 +303,200 @@ type ValidateConfigCmd struct {
 type TestPatternCmd struct {
 	File    string `arg:"" help:"File to test against patterns" type:"existingfile"`
 	Verbose bool   `short:"v" help:"Show detailed matching info"`
+}
+
+type GitHubCmd struct {
+	ReviewPR GitHubReviewPRCmd `cmd:"" help:"Review a PR and post a comment."`
+}
+
+type GitHubReviewPRCmd struct {
+	PR      int    `short:"p" help:"Pull request number (auto-detected in GitHub Actions)."`
+	Base    string `short:"b" help:"Base commit SHA (auto-detected in GitHub Actions)."`
+	Head    string `short:"H" help:"Head commit SHA (auto-detected in GitHub Actions)."`
+	Verbose bool   `short:"v" help:"Enable verbose output."`
+	Message string `short:"m" help:"Message to display while processing." default:"Analyzing PR..."`
+}
+
+func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
+	// Load configuration
+	parser := config.NewParser()
+	var cfg *config.Config
+	var err error
+
+	if cli.Config != "" {
+		cfg, err = parser.LoadFile(cli.Config)
+		if err != nil {
+			return fmt.Errorf(
+				"failed to load config file %s: %w", cli.Config, err,
+			)
+		}
+		if gr.Verbose {
+			fmt.Printf("Using config file: %s\n", cli.Config)
+		}
+	} else {
+		cfg, err = parser.Load()
+		if err != nil {
+			return fmt.Errorf("failed to load configuration: %w", err)
+		}
+		if gr.Verbose && len(cfg.Patterns) == 0 {
+			fmt.Println("Using default configuration (no config file found or config is empty)")
+		}
+	}
+
+	ghClient, err := misoGithub.NewClient("")
+	if err != nil {
+		return fmt.Errorf("failed to initialize GitHub client: %w. Check GITHUB_TOKEN and GITHUB_REPOSITORY env vars", err)
+	}
+
+	// Auto-detect PR info if not provided
+	base, head := gr.Base, gr.Head
+	prNumber := gr.PR
+
+	if prNumber == 0 || base == "" || head == "" {
+		if event, err := ghClient.GetPRInfo(); err == nil {
+			if prNumber == 0 {
+				prNumber = event.PullRequest.Number
+			}
+			if base == "" {
+				base = event.PullRequest.Base.SHA
+			}
+			if head == "" {
+				head = event.PullRequest.Head.SHA
+			}
+		}
+	}
+
+	if base == "" || head == "" {
+		return fmt.Errorf("could not determine base and head commits. Please specify --base and --head, or run in a GitHub Action context")
+	}
+	if prNumber == 0 {
+		return fmt.Errorf("could not determine pull request number. Please specify --pr, or run in a GitHub Action context")
+	}
+
+	if gr.Verbose {
+		fmt.Printf("Reviewing PR #%d: %s..%s\n", prNumber, base, head)
+	}
+
+	// Initialize git client
+	gitClient, err := git.NewGitClient()
+	if err != nil {
+		return fmt.Errorf("failed to initialize git client: %w", err)
+	}
+
+	// Get changed files
+	files, err := gitClient.GetChangedFiles(base, head)
+	if err != nil {
+		return fmt.Errorf("failed to get changed files: %w", err)
+	}
+
+	if len(files) == 0 {
+		fmt.Println("No files changed in the specified range.")
+		return nil
+	}
+
+	if gr.Verbose {
+		fmt.Printf("Found %d changed files\n", len(files))
+	}
+
+	// Filter files that should be reviewed
+	res := resolver.NewResolver(cfg)
+	var reviewableFiles []string
+	for _, file := range files {
+		if res.ShouldReview(file) {
+			reviewableFiles = append(reviewableFiles, file)
+		} else if gr.Verbose {
+			fmt.Printf("Skipping %s (no matching patterns)\n", file)
+		}
+	}
+
+	if len(reviewableFiles) == 0 {
+		fmt.Println("No files match review patterns.")
+		return nil
+	}
+
+	// Initialize reviewer
+	reviewer, err := agents.NewCodeReviewer()
+	if err != nil {
+		return fmt.Errorf("failed to create reviewer: %w", err)
+	}
+
+	// Capture review output
+	var reviewOutput bytes.Buffer
+
+	// Review each changed file
+	totalTokens := 0
+	formatter := diff.NewFormatter()
+	for _, file := range reviewableFiles {
+		// Get guides for this file
+		guides, err := res.GetDiffGuides(file)
+		if err != nil {
+			fmt.Printf("Error getting guides for file: %v\n", err)
+			continue
+		}
+
+		if gr.Verbose {
+			fmt.Printf("Using diff guides: %v\n", guides)
+		}
+
+		// Get the structured diff data
+		diffData, err := gitClient.GetFileDiffData(base, head, file)
+		if err != nil {
+			fmt.Printf("Error getting diff for file: %v\n", err)
+			continue
+		}
+
+		// Create spinner
+		s := spinner.New(spinner.CharSets[spinnerCharSet], spinnerRefreshRate)
+		s.Suffix = " " + gr.Message
+		s.Start()
+
+		// Perform diff review (reviewing only the changes)
+		result, err := reviewer.ReviewDiff(cfg, diffData, file)
+
+		// Stop spinner
+		s.Stop()
+
+		if err != nil {
+			fmt.Printf("Error reviewing file: %v\n", err)
+			continue
+		}
+
+		// Format the output to include diffs
+		formattedContent := formatter.Format(result.Content)
+
+		if formattedContent != "" {
+			reviewOutput.WriteString(fmt.Sprintf("<details>\n"))
+			reviewOutput.WriteString(
+				fmt.Sprintf(
+					"<summary>📝 Review for <strong>%s</strong></summary>\n\n", file,
+				),
+			)
+			reviewOutput.WriteString(formattedContent)
+			reviewOutput.WriteString(fmt.Sprintf("\n</details>\n"))
+		}
+
+		if result.TokensUsed > 0 {
+			totalTokens += result.TokensUsed
+		}
+	}
+
+	// Post to GitHub
+	commentBody := fmt.Sprintf("# 🍲 miso Code review\n\n%s", reviewOutput.String())
+	if err := ghClient.PostOrUpdateComment(prNumber, commentBody); err != nil {
+		return fmt.Errorf("failed to post comment to GitHub: %w", err)
+	}
+	fmt.Printf("✅ Successfully posted review to PR #%d\n", prNumber)
+
+	// Summary for verbose mode
+	if gr.Verbose {
+		fmt.Printf("\n=== Summary ===\n")
+		fmt.Printf("Files reviewed: %d\n", len(reviewableFiles))
+		if totalTokens > 0 {
+			fmt.Printf("Total tokens used: %d\n", totalTokens)
+		}
+	}
+
+	return nil
 }
 
 func (d *DiffCmd) Run(cli *CLI) error {

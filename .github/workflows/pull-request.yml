@@ -40,24 +40,12 @@ jobs:
           echo "No miso configuration found, using defaults"
         fi
     
-    - name: Review changed files (PR)
+    - name: Review and Comment on PR
       if: github.event_name == 'pull_request'
       env:
         OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      run: |
-        # Get the base branch for comparison
-        BASE_SHA="${{ github.event.pull_request.base.sha }}"
-        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-        
-        echo "Reviewing changes between $BASE_SHA and $HEAD_SHA"
-        
-        # Review the diff
-        ./miso diff "$BASE_SHA..$HEAD_SHA" > review-output.md
-        
-        # Save review output as artifact
-        echo "# 🍲 miso Code review" > pr-review.md
-        echo "" >> pr-review.md
-        cat review-output.md >> pr-review.md
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: ./miso github review-pr
     
     - name: Review recent changes (Push)
       if: github.event_name == 'push'
@@ -86,54 +74,10 @@ jobs:
         echo "" >> push-review.md
         cat review-output.md >> push-review.md
     
-    - name: Comment on PR
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const fs = require('fs');
-          
-          // Read the review output
-          let reviewContent = '';
-          try {
-            reviewContent = fs.readFileSync('pr-review.md', 'utf8');
-          } catch (error) {
-            reviewContent = '# 🍲 miso Code review\n\nNo review content generated.';
-          }
-          
-          // Find existing review comment
-          const comments = await github.rest.issues.listComments({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.issue.number,
-          });
-          
-          const botComment = comments.data.find(comment => 
-            comment.user.type === 'Bot' && 
-            comment.body.includes('🍲 miso Code review')
-          );
-          
-          if (botComment) {
-            // Update existing comment
-            await github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: botComment.id,
-              body: reviewContent
-            });
-          } else {
-            // Create new comment
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: reviewContent
-            });
-          }
     
     - name: Upload review artifacts
       uses: actions/upload-artifact@v4
-      if: always()
+      if: always() && github.event_name == 'push'
       with:
         name: code-review-output
         path: |

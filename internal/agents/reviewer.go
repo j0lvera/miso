@@ -60,8 +60,8 @@ func NewCodeReviewer() (*CodeReviewer, error) {
 
 	// Set custom headers for OpenRouter
 	headers := map[string]string{
-		"Referer": website,
-		"X-Title": name,
+		"HTTP-Referer": website,
+		"X-Title":      name,
 	}
 
 	// Create a custom transport to add headers

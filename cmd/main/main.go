@@ -40,7 +40,7 @@ type ReviewCmd struct {
 	Verbose bool   `short:"v" help:"Enable verbose output"`
 	Message string `short:"m" help:"Message to display while processing" default:"Thinking..."`
 	DryRun  bool   `short:"d" help:"Show what would be reviewed without calling LLM"`
-	Style   string `short:"s" help:"Output style: plain or rich" enum:"plain,rich" default:"plain"`
+	Style   string `short:"s" help:"Output style: plain (default) or rich (formatted with colors and markdown)" enum:"plain,rich" default:"plain"`
 }
 
 type VersionCmd struct{}
@@ -254,21 +254,12 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 
 	// Apply glamour rendering if requested
 	if r.Style == "rich" {
-		renderer, err := glamour.NewTermRenderer(
-			glamour.WithAutoStyle(),
-			glamour.WithWordWrap(80),
-		)
+		rendered, err := renderRichOutput(formattedContent)
 		if err != nil {
-			// Fall back to plain output if glamour fails
+			// Fall back to plain output if rendering fails
 			fmt.Println(formattedContent)
 		} else {
-			rendered, err := renderer.Render(formattedContent)
-			if err != nil {
-				// Fall back to plain output if rendering fails
-				fmt.Println(formattedContent)
-			} else {
-				fmt.Print(rendered)
-			}
+			fmt.Print(rendered)
 		}
 	} else {
 		fmt.Println(formattedContent)
@@ -672,6 +663,23 @@ func getContentToScan(
 
 		return []byte(strings.Join(lines[:linesToScan], "\n"))
 	}
+}
+
+func renderRichOutput(content string) (string, error) {
+	renderer, err := glamour.NewTermRenderer(
+		glamour.WithAutoStyle(),
+		glamour.WithWordWrap(80),
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to create renderer: %w", err)
+	}
+
+	rendered, err := renderer.Render(content)
+	if err != nil {
+		return "", fmt.Errorf("failed to render content: %w", err)
+	}
+
+	return rendered, nil
 }
 
 func main() {

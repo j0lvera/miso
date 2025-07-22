@@ -286,7 +286,30 @@ type GitHubReviewPRCmd struct {
 	Message string `short:"m" help:"Message to display while processing." default:"Analyzing PR..."`
 }
 
+func isValidSHA(sha string) bool {
+	// A git SHA is typically 40 hex characters, but can be shorter (e.g. 7).
+	// We'll check for 4-40 hex characters.
+	match, _ := regexp.MatchString(`^[a-f0-9]{4,40}$`, sha)
+	return match
+}
+
+func (gr *GitHubReviewPRCmd) validate() error {
+	if gr.PR < 0 {
+		return fmt.Errorf("invalid PR number: %d", gr.PR)
+	}
+	if gr.Base != "" && !isValidSHA(gr.Base) {
+		return fmt.Errorf("invalid base SHA: %s", gr.Base)
+	}
+	if gr.Head != "" && !isValidSHA(gr.Head) {
+		return fmt.Errorf("invalid head SHA: %s", gr.Head)
+	}
+	return nil
+}
+
 func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
+	if err := gr.validate(); err != nil {
+		return err
+	}
 	// Load configuration
 	cfg, err := loadConfig(cli.Config, gr.Verbose)
 	if err != nil {

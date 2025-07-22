@@ -35,7 +35,7 @@ type CLI struct {
 	Diff           DiffCmd           `cmd:"" help:"Review changes in a git diff"`
 	ValidateConfig ValidateConfigCmd `cmd:"" help:"Validate configuration file"`
 	TestPattern    TestPatternCmd    `cmd:"" help:"Test which patterns match a file"`
-	GitHub         GitHubCmd         `cmd:"" help:"GitHub integration commands"`
+	GitHub         GitHubCmd         `cmd:"" name:"github" help:"GitHub integration commands"`
 	Version        VersionCmd        `cmd:"" help:"Show version"`
 }
 

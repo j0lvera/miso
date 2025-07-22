@@ -3,6 +3,7 @@ package agents
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/j0lvera/miso/internal/config"
@@ -16,6 +17,21 @@ const (
 	website = "https://github.com/j0lvera/miso"
 	name    = "miso"
 )
+
+// headerTransport is a custom http.RoundTripper to add headers to requests.
+type headerTransport struct {
+	base    http.RoundTripper
+	headers map[string]string
+}
+
+// RoundTrip adds custom headers to the request before sending it.
+func (t *headerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req2 := req.Clone(req.Context())
+	for k, v := range t.headers {
+		req2.Header.Set(k, v)
+	}
+	return t.base.RoundTrip(req2)
+}
 
 // ReviewResult holds the review content and token usage information from an LLM call.
 // Provides details about the review content and associated costs.
@@ -44,8 +60,19 @@ func NewCodeReviewer() (*CodeReviewer, error) {
 
 	// Set custom headers for OpenRouter
 	headers := map[string]string{
-		"HTTP-Referer": website,
-		"X-Title":      name,
+		"Referer": website,
+		"X-Title": name,
+	}
+
+	// Create a custom transport to add headers
+	transport := &headerTransport{
+		base:    http.DefaultTransport,
+		headers: headers,
+	}
+
+	// Create a custom HTTP client
+	client := &http.Client{
+		Transport: transport,
 	}
 
 	// Configure for OpenRouter
@@ -53,7 +80,7 @@ func NewCodeReviewer() (*CodeReviewer, error) {
 		openai.WithToken(apiKey),
 		openai.WithBaseURL("https://openrouter.ai/api/v1"),
 		openai.WithModel("anthropic/claude-3.5-sonnet"),
-		openai.WithSetCustomHeader(headers),
+		openai.WithHTTPClient(client),
 	)
 	if err != nil {
 		return nil, fmt.Errorf(

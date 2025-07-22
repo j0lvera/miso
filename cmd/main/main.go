@@ -108,25 +108,9 @@ func (vc *ValidateConfigCmd) Run(cli *CLI) error {
 }
 
 func (tp *TestPatternCmd) Run(cli *CLI) error {
-	parser := config.NewParser()
-	var cfg *config.Config
-	var err error
-
-	if cli.Config != "" {
-		cfg, err = parser.LoadFile(cli.Config)
-		if err != nil {
-			return fmt.Errorf(
-				"failed to load config file %s: %w", cli.Config, err,
-			)
-		}
-	} else {
-		cfg, err = parser.Load()
-		if err != nil {
-			return fmt.Errorf("failed to load configuration: %w", err)
-		}
-		if len(cfg.Patterns) == 0 {
-			fmt.Println("Using default configuration (no config file found or config is empty)")
-		}
+	cfg, err := loadConfig(cli.Config, tp.Verbose)
+	if err != nil {
+		return err
 	}
 
 	// Create resolver and test the file
@@ -171,28 +155,9 @@ func (tp *TestPatternCmd) Run(cli *CLI) error {
 
 func (r *ReviewCmd) Run(cli *CLI) error {
 	// Load configuration
-	parser := config.NewParser()
-	var cfg *config.Config
-	var err error
-
-	if cli.Config != "" {
-		cfg, err = parser.LoadFile(cli.Config)
-		if err != nil {
-			return fmt.Errorf(
-				"failed to load config file %s: %w", cli.Config, err,
-			)
-		}
-		if r.Verbose {
-			fmt.Printf("Using config file: %s\n", cli.Config)
-		}
-	} else {
-		cfg, err = parser.Load()
-		if err != nil {
-			return fmt.Errorf("failed to load configuration: %w", err)
-		}
-		if r.Verbose && len(cfg.Patterns) == 0 {
-			fmt.Println("Using default configuration (no config file found or config is empty)")
-		}
+	cfg, err := loadConfig(cli.Config, r.Verbose)
+	if err != nil {
+		return err
 	}
 
 	// Check if file should be reviewed
@@ -309,6 +274,10 @@ type GitHubCmd struct {
 	ReviewPR GitHubReviewPRCmd `cmd:"" help:"Review a PR and post a comment."`
 }
 
+// GitHubReviewPRCmd reviews a pull request.
+// The fields PR, Base, and Head are intentionally not marked as 'required'
+// because they are designed to be auto-detected from the GitHub Actions environment.
+// The validation logic is handled within the Run method after attempting auto-detection.
 type GitHubReviewPRCmd struct {
 	PR      int    `short:"p" help:"Pull request number (auto-detected in GitHub Actions)."`
 	Base    string `short:"b" help:"Base commit SHA (auto-detected in GitHub Actions)."`
@@ -319,28 +288,9 @@ type GitHubReviewPRCmd struct {
 
 func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 	// Load configuration
-	parser := config.NewParser()
-	var cfg *config.Config
-	var err error
-
-	if cli.Config != "" {
-		cfg, err = parser.LoadFile(cli.Config)
-		if err != nil {
-			return fmt.Errorf(
-				"failed to load config file %s: %w", cli.Config, err,
-			)
-		}
-		if gr.Verbose {
-			fmt.Printf("Using config file: %s\n", cli.Config)
-		}
-	} else {
-		cfg, err = parser.Load()
-		if err != nil {
-			return fmt.Errorf("failed to load configuration: %w", err)
-		}
-		if gr.Verbose && len(cfg.Patterns) == 0 {
-			fmt.Println("Using default configuration (no config file found or config is empty)")
-		}
+	cfg, err := loadConfig(cli.Config, gr.Verbose)
+	if err != nil {
+		return err
 	}
 
 	ghClient, err := misoGithub.NewClient("")
@@ -501,28 +451,9 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 
 func (d *DiffCmd) Run(cli *CLI) error {
 	// Load configuration
-	parser := config.NewParser()
-	var cfg *config.Config
-	var err error
-
-	if cli.Config != "" {
-		cfg, err = parser.LoadFile(cli.Config)
-		if err != nil {
-			return fmt.Errorf(
-				"failed to load config file %s: %w", cli.Config, err,
-			)
-		}
-		if d.Verbose {
-			fmt.Printf("Using config file: %s\n", cli.Config)
-		}
-	} else {
-		cfg, err = parser.Load()
-		if err != nil {
-			return fmt.Errorf("failed to load configuration: %w", err)
-		}
-		if d.Verbose && len(cfg.Patterns) == 0 {
-			fmt.Println("Using default configuration (no config file found or config is empty)")
-		}
+	cfg, err := loadConfig(cli.Config, d.Verbose)
+	if err != nil {
+		return err
 	}
 
 	// Initialize git client
@@ -878,6 +809,33 @@ func renderRichOutput(content string) (string, error) {
 	}
 
 	return rendered, nil
+}
+
+func loadConfig(configPath string, verbose bool) (*config.Config, error) {
+	parser := config.NewParser()
+	var cfg *config.Config
+	var err error
+
+	if configPath != "" {
+		cfg, err = parser.LoadFile(configPath)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"failed to load config file %s: %w", configPath, err,
+			)
+		}
+		if verbose {
+			fmt.Printf("Using config file: %s\n", configPath)
+		}
+	} else {
+		cfg, err = parser.Load()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load configuration: %w", err)
+		}
+		if verbose && len(cfg.Patterns) == 0 {
+			fmt.Println("Using default configuration (no config file found or config is empty)")
+		}
+	}
+	return cfg, nil
 }
 
 func main() {

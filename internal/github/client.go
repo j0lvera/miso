@@ -91,6 +91,9 @@ func (c *Client) FindBotComment(prNumber int, identifier string) (*github.IssueC
 		c.ctx, c.owner, c.repo, prNumber, opts,
 	)
 	if err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return nil, fmt.Errorf("GitHub API rate limit exceeded, please try again later")
+		}
 		return nil, err
 	}
 
@@ -119,6 +122,9 @@ func (c *Client) PostOrUpdateComment(prNumber int, content string) error {
 			c.ctx, c.owner, c.repo, existing.GetID(),
 			&github.IssueComment{Body: &content},
 		)
+		if _, ok := err.(*github.RateLimitError); ok {
+			return fmt.Errorf("GitHub API rate limit exceeded, please try again later")
+		}
 		return err
 	}
 
@@ -127,5 +133,8 @@ func (c *Client) PostOrUpdateComment(prNumber int, content string) error {
 		c.ctx, c.owner, c.repo, prNumber,
 		&github.IssueComment{Body: &content},
 	)
+	if _, ok := err.(*github.RateLimitError); ok {
+		return fmt.Errorf("GitHub API rate limit exceeded, please try again later")
+	}
 	return err
 }

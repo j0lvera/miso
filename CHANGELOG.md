@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Add `github` command with `review-pr` and `comment` subcommands for GitHub integration.
 - Add rich terminal output for reviews using `--output-style rich`.
 
 ### Changed

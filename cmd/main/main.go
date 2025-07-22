@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/briandowns/spinner"
+	"github.com/charmbracelet/glamour"
 	"github.com/j0lvera/miso/internal/agents"
 	"github.com/j0lvera/miso/internal/config"
 	"github.com/j0lvera/miso/internal/diff"
@@ -35,10 +37,11 @@ type CLI struct {
 }
 
 type ReviewCmd struct {
-	File    string `arg:"" required:"" help:"Path to the file to review" type:"existingfile"`
-	Verbose bool   `short:"v" help:"Enable verbose output"`
-	Message string `short:"m" help:"Message to display while processing" default:"Thinking..."`
-	DryRun  bool   `short:"d" help:"Show what would be reviewed without calling LLM"`
+	File        string `arg:"" required:"" help:"Path to the file to review" type:"existingfile"`
+	Verbose     bool   `short:"v" help:"Enable verbose output"`
+	Message     string `short:"m" help:"Message to display while processing" default:"Thinking..."`
+	DryRun      bool   `short:"d" help:"Show what would be reviewed without calling LLM"`
+	OutputStyle string `short:"s" name:"output-style" help:"Output style: plain (default) or rich (formatted with colors and markdown)" enum:"plain,rich" default:"plain"`
 }
 
 type VersionCmd struct{}
@@ -250,7 +253,18 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 	formatter := diff.NewFormatter()
 	formattedContent := formatter.Format(result.Content)
 
-	fmt.Println(formattedContent)
+	// Apply glamour rendering if requested
+	if r.OutputStyle == "rich" {
+		rendered, err := renderRichOutput(formattedContent)
+		if err != nil {
+			log.Printf("Failed to initialize rich renderer: %v", err)
+			fmt.Println(formattedContent)
+		} else {
+			fmt.Print(rendered)
+		}
+	} else {
+		fmt.Println(formattedContent)
+	}
 
 	// Display token usage if available
 	if result.TokensUsed > 0 {
@@ -650,6 +664,23 @@ func getContentToScan(
 
 		return []byte(strings.Join(lines[:linesToScan], "\n"))
 	}
+}
+
+func renderRichOutput(content string) (string, error) {
+	renderer, err := glamour.NewTermRenderer(
+		glamour.WithAutoStyle(),
+		glamour.WithWordWrap(80),
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to create renderer: %w", err)
+	}
+
+	rendered, err := renderer.Render(content)
+	if err != nil {
+		return "", fmt.Errorf("failed to render content: %w", err)
+	}
+
+	return rendered, nil
 }
 
 func main() {

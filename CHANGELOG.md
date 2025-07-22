@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add rich terminal output for reviews using `--output-style rich`.
+
 ### Changed
+- Rename `--style` flag to `--output-style` for consistency.
 - Refactor OpenRouter headers to use constants.
+- Update code review prompt to improve report formatting.
 
 ## [0.3.2] - 2025-07-22
 ### Fixed

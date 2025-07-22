@@ -55,7 +55,7 @@ jobs:
         ./miso diff "$BASE_SHA..$HEAD_SHA" > review-output.md
         
         # Save review output as artifact
-        echo "## 🤖 miso Code Review" > pr-review.md
+        echo "# 🍲 miso Code review" > pr-review.md
         echo "" >> pr-review.md
         cat review-output.md >> pr-review.md
     
@@ -82,7 +82,7 @@ jobs:
         # Review the diff
         ./miso diff "${BASE_SHA}..${HEAD_SHA}" > review-output.md
         
-        echo "## 🤖 miso Code Review - Recent Changes" > push-review.md
+        echo "# 🍲 miso Code review - Recent Changes" > push-review.md
         echo "" >> push-review.md
         cat review-output.md >> push-review.md
     
@@ -98,7 +98,7 @@ jobs:
           try {
             reviewContent = fs.readFileSync('pr-review.md', 'utf8');
           } catch (error) {
-            reviewContent = '## 🤖 miso Code Review\n\nNo review content generated.';
+            reviewContent = '# 🍲 miso Code review\n\nNo review content generated.';
           }
           
           // Find existing review comment
@@ -110,7 +110,7 @@ jobs:
           
           const botComment = comments.data.find(comment => 
             comment.user.type === 'Bot' && 
-            comment.body.includes('🤖 miso Code Review')
+            comment.body.includes('🍲 miso Code review')
           );
           
           if (botComment) {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/briandowns/spinner"
+	"github.com/charmbracelet/glamour"
 	"github.com/j0lvera/miso/internal/agents"
 	"github.com/j0lvera/miso/internal/config"
 	"github.com/j0lvera/miso/internal/diff"
@@ -39,6 +40,7 @@ type ReviewCmd struct {
 	Verbose bool   `short:"v" help:"Enable verbose output"`
 	Message string `short:"m" help:"Message to display while processing" default:"Thinking..."`
 	DryRun  bool   `short:"d" help:"Show what would be reviewed without calling LLM"`
+	Style   string `short:"s" help:"Output style: plain or rendered" enum:"plain,rendered" default:"plain"`
 }
 
 type VersionCmd struct{}
@@ -250,7 +252,27 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 	formatter := diff.NewFormatter()
 	formattedContent := formatter.Format(result.Content)
 
-	fmt.Println(formattedContent)
+	// Apply glamour rendering if requested
+	if r.Style == "rendered" {
+		renderer, err := glamour.NewTermRenderer(
+			glamour.WithAutoStyle(),
+			glamour.WithWordWrap(80),
+		)
+		if err != nil {
+			// Fall back to plain output if glamour fails
+			fmt.Println(formattedContent)
+		} else {
+			rendered, err := renderer.Render(formattedContent)
+			if err != nil {
+				// Fall back to plain output if rendering fails
+				fmt.Println(formattedContent)
+			} else {
+				fmt.Print(rendered)
+			}
+		}
+	} else {
+		fmt.Println(formattedContent)
+	}
 
 	// Display token usage if available
 	if result.TokensUsed > 0 {
@@ -277,6 +299,7 @@ type DiffCmd struct {
 	Verbose bool   `short:"v" help:"Enable verbose output"`
 	Message string `short:"m" help:"Message to display while processing" default:"Analyzing changes..."`
 	DryRun  bool   `short:"d" help:"Show what would be reviewed without calling LLM"`
+	Style   string `short:"s" help:"Output style: plain or rendered" enum:"plain,rendered" default:"plain"`
 }
 
 type ValidateConfigCmd struct {
@@ -420,12 +443,45 @@ func (d *DiffCmd) Run(cli *CLI) error {
 		formattedContent := formatter.Format(result.Content)
 
 		if formattedContent != "" {
-			fmt.Printf("<details>\n")
-			fmt.Printf(
-				"<summary>📝 Review for <strong>%s</strong></summary>\n\n", file,
-			)
-			fmt.Println(formattedContent)
-			fmt.Printf("\n</details>\n")
+			if d.Style == "rendered" {
+				// For rendered style, create a markdown document with the review
+				markdownContent := fmt.Sprintf("## 📝 Review for %s\n\n%s\n", file, formattedContent)
+				
+				renderer, err := glamour.NewTermRenderer(
+					glamour.WithAutoStyle(),
+					glamour.WithWordWrap(80),
+				)
+				if err != nil {
+					// Fall back to plain output
+					fmt.Printf("<details>\n")
+					fmt.Printf(
+						"<summary>📝 Review for <strong>%s</strong></summary>\n\n", file,
+					)
+					fmt.Println(formattedContent)
+					fmt.Printf("\n</details>\n")
+				} else {
+					rendered, err := renderer.Render(markdownContent)
+					if err != nil {
+						// Fall back to plain output
+						fmt.Printf("<details>\n")
+						fmt.Printf(
+							"<summary>📝 Review for <strong>%s</strong></summary>\n\n", file,
+						)
+						fmt.Println(formattedContent)
+						fmt.Printf("\n</details>\n")
+					} else {
+						fmt.Print(rendered)
+					}
+				}
+			} else {
+				// Plain style - use the original HTML details format
+				fmt.Printf("<details>\n")
+				fmt.Printf(
+					"<summary>📝 Review for <strong>%s</strong></summary>\n\n", file,
+				)
+				fmt.Println(formattedContent)
+				fmt.Printf("\n</details>\n")
+			}
 		}
 
 		if result.TokensUsed > 0 {

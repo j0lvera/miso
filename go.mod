@@ -5,6 +5,7 @@ go 1.24.2
 require (
 	github.com/alecthomas/kong v1.12.0
 	github.com/briandowns/spinner v1.23.2
+	github.com/charmbracelet/glamour v0.8.0
 	github.com/go-git/go-git/v5 v5.16.2
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
 	github.com/tmc/langchaingo v0.1.13

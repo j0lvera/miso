@@ -15,7 +15,6 @@ type Client struct {
 	client *github.Client
 	owner  string
 	repo   string
-	ctx    context.Context
 }
 
 type PREvent struct {
@@ -59,7 +58,6 @@ func NewClient(token string) (*Client, error) {
 		client: github.NewClient(tc),
 		owner:  parts[0],
 		repo:   parts[1],
-		ctx:    ctx,
 	}, nil
 }
 
@@ -82,14 +80,14 @@ func (c *Client) GetPRInfo() (*PREvent, error) {
 	return &event, nil
 }
 
-func (c *Client) FindBotComment(prNumber int, identifier string) (*github.IssueComment, error) {
+func (c *Client) FindBotComment(ctx context.Context, prNumber int, identifier string) (*github.IssueComment, error) {
 	opts := &github.IssueListCommentsOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
 	}
 
 	for {
 		comments, resp, err := c.client.Issues.ListComments(
-			c.ctx, c.owner, c.repo, prNumber, opts,
+			ctx, c.owner, c.repo, prNumber, opts,
 		)
 		if err != nil {
 			if _, ok := err.(*github.RateLimitError); ok {
@@ -114,11 +112,11 @@ func (c *Client) FindBotComment(prNumber int, identifier string) (*github.IssueC
 	return nil, nil
 }
 
-func (c *Client) PostOrUpdateComment(prNumber int, content string) error {
+func (c *Client) PostOrUpdateComment(ctx context.Context, prNumber int, content string) error {
 	identifier := "🍲 miso Code review"
 
 	// Find existing comment
-	existing, err := c.FindBotComment(prNumber, identifier)
+	existing, err := c.FindBotComment(ctx, prNumber, identifier)
 	if err != nil {
 		return fmt.Errorf("failed to find existing comment: %w", err)
 	}
@@ -126,7 +124,7 @@ func (c *Client) PostOrUpdateComment(prNumber int, content string) error {
 	if existing != nil {
 		// Update existing comment
 		_, _, err = c.client.Issues.EditComment(
-			c.ctx, c.owner, c.repo, existing.GetID(),
+			ctx, c.owner, c.repo, existing.GetID(),
 			&github.IssueComment{Body: &content},
 		)
 		if _, ok := err.(*github.RateLimitError); ok {
@@ -137,7 +135,7 @@ func (c *Client) PostOrUpdateComment(prNumber int, content string) error {
 
 	// Create new comment
 	_, _, err = c.client.Issues.CreateComment(
-		c.ctx, c.owner, c.repo, prNumber,
+		ctx, c.owner, c.repo, prNumber,
 		&github.IssueComment{Body: &content},
 	)
 	if _, ok := err.(*github.RateLimitError); ok {

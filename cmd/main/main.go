@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -16,6 +18,7 @@ import (
 	"github.com/j0lvera/miso/internal/config"
 	"github.com/j0lvera/miso/internal/diff"
 	"github.com/j0lvera/miso/internal/git"
+	misoGithub "github.com/j0lvera/miso/internal/github"
 	"github.com/j0lvera/miso/internal/resolver"
 )
 
@@ -33,6 +36,7 @@ type CLI struct {
 	Diff           DiffCmd           `cmd:"" help:"Review changes in a git diff"`
 	ValidateConfig ValidateConfigCmd `cmd:"" help:"Validate configuration file"`
 	TestPattern    TestPatternCmd    `cmd:"" help:"Test which patterns match a file"`
+	GitHub         GitHubCmd         `cmd:"" name:"github" help:"GitHub integration commands"`
 	Version        VersionCmd        `cmd:"" help:"Show version"`
 }
 
@@ -105,25 +109,9 @@ func (vc *ValidateConfigCmd) Run(cli *CLI) error {
 }
 
 func (tp *TestPatternCmd) Run(cli *CLI) error {
-	parser := config.NewParser()
-	var cfg *config.Config
-	var err error
-
-	if cli.Config != "" {
-		cfg, err = parser.LoadFile(cli.Config)
-		if err != nil {
-			return fmt.Errorf(
-				"failed to load config file %s: %w", cli.Config, err,
-			)
-		}
-	} else {
-		cfg, err = parser.Load()
-		if err != nil {
-			return fmt.Errorf("failed to load configuration: %w", err)
-		}
-		if len(cfg.Patterns) == 0 {
-			fmt.Println("Using default configuration (no config file found or config is empty)")
-		}
+	cfg, err := loadConfig(cli.Config, tp.Verbose)
+	if err != nil {
+		return err
 	}
 
 	// Create resolver and test the file
@@ -168,28 +156,9 @@ func (tp *TestPatternCmd) Run(cli *CLI) error {
 
 func (r *ReviewCmd) Run(cli *CLI) error {
 	// Load configuration
-	parser := config.NewParser()
-	var cfg *config.Config
-	var err error
-
-	if cli.Config != "" {
-		cfg, err = parser.LoadFile(cli.Config)
-		if err != nil {
-			return fmt.Errorf(
-				"failed to load config file %s: %w", cli.Config, err,
-			)
-		}
-		if r.Verbose {
-			fmt.Printf("Using config file: %s\n", cli.Config)
-		}
-	} else {
-		cfg, err = parser.Load()
-		if err != nil {
-			return fmt.Errorf("failed to load configuration: %w", err)
-		}
-		if r.Verbose && len(cfg.Patterns) == 0 {
-			fmt.Println("Using default configuration (no config file found or config is empty)")
-		}
+	cfg, err := loadConfig(cli.Config, r.Verbose)
+	if err != nil {
+		return err
 	}
 
 	// Check if file should be reviewed
@@ -302,30 +271,222 @@ type TestPatternCmd struct {
 	Verbose bool   `short:"v" help:"Show detailed matching info"`
 }
 
+type GitHubCmd struct {
+	ReviewPR GitHubReviewPRCmd `cmd:"" help:"Review a PR and post a comment."`
+}
+
+// GitHubReviewPRCmd reviews a pull request.
+// The fields PR, Base, and Head are intentionally not marked as 'required'
+// because they are designed to be auto-detected from the GitHub Actions environment.
+// The validation logic is handled within the Run method after attempting auto-detection.
+type GitHubReviewPRCmd struct {
+	PR      int    `short:"p" help:"Pull request number (auto-detected in GitHub Actions)."`
+	Base    string `short:"b" help:"Base commit SHA (auto-detected in GitHub Actions)."`
+	Head    string `short:"H" help:"Head commit SHA (auto-detected in GitHub Actions)."`
+	Verbose bool   `short:"v" help:"Enable verbose output."`
+	Message string `short:"m" help:"Message to display while processing." default:"Analyzing PR..."`
+}
+
+func isValidSHA(sha string) bool {
+	// A git SHA is typically 40 hex characters, but can be shorter (e.g. 7).
+	// We'll check for 4-40 hex characters.
+	match, _ := regexp.MatchString(`^[a-f0-9]{4,40}$`, sha)
+	return match
+}
+
+func (gr *GitHubReviewPRCmd) validate() error {
+	if gr.PR < 0 {
+		return fmt.Errorf("invalid PR number: %d", gr.PR)
+	}
+	if gr.Base != "" && !isValidSHA(gr.Base) {
+		return fmt.Errorf("invalid base SHA: %s", gr.Base)
+	}
+	if gr.Head != "" && !isValidSHA(gr.Head) {
+		return fmt.Errorf("invalid head SHA: %s", gr.Head)
+	}
+	return nil
+}
+
+func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
+	if err := gr.validate(); err != nil {
+		return err
+	}
+	// Load configuration
+	cfg, err := loadConfig(cli.Config, gr.Verbose)
+	if err != nil {
+		return err
+	}
+
+	ghClient, err := misoGithub.NewClient("")
+	if err != nil {
+		return fmt.Errorf("failed to initialize GitHub client (check GITHUB_TOKEN and GITHUB_REPOSITORY env vars): %w", err)
+	}
+
+	// Auto-detect PR info if not provided
+	base, head := gr.Base, gr.Head
+	prNumber := gr.PR
+
+	if prNumber == 0 || base == "" || head == "" {
+		if event, err := ghClient.GetPRInfo(); err == nil {
+			if prNumber == 0 {
+				prNumber = event.PullRequest.Number
+			}
+			if base == "" {
+				base = event.PullRequest.Base.SHA
+			}
+			if head == "" {
+				head = event.PullRequest.Head.SHA
+			}
+		}
+	}
+
+	if base == "" || head == "" {
+		return fmt.Errorf("could not determine base and head commits. Please specify --base and --head, or run in a GitHub Action context")
+	}
+	if prNumber == 0 {
+		return fmt.Errorf("could not determine pull request number. Please specify --pr, or run in a GitHub Action context")
+	}
+
+	if gr.Verbose {
+		fmt.Printf("Reviewing PR #%d: %s..%s\n", prNumber, base, head)
+	}
+
+	// Initialize git client
+	gitClient, err := git.NewGitClient()
+	if err != nil {
+		return fmt.Errorf("failed to initialize git client: %w", err)
+	}
+
+	// Get changed files
+	files, err := gitClient.GetChangedFiles(base, head)
+	if err != nil {
+		return fmt.Errorf("failed to get changed files: %w", err)
+	}
+
+	if len(files) == 0 {
+		fmt.Println("No files changed in the specified range.")
+		return nil
+	}
+
+	if gr.Verbose {
+		fmt.Printf("Found %d changed files\n", len(files))
+	}
+
+	// Filter files that should be reviewed
+	res := resolver.NewResolver(cfg)
+	var reviewableFiles []string
+	for _, file := range files {
+		if res.ShouldReview(file) {
+			reviewableFiles = append(reviewableFiles, file)
+		} else if gr.Verbose {
+			fmt.Printf("Skipping %s (no matching patterns)\n", file)
+		}
+	}
+
+	if len(reviewableFiles) == 0 {
+		fmt.Println("No files match review patterns.")
+		return nil
+	}
+
+	// Initialize reviewer
+	reviewer, err := agents.NewCodeReviewer()
+	if err != nil {
+		return fmt.Errorf("failed to create reviewer: %w", err)
+	}
+
+	// Capture review output
+	var reviewOutput bytes.Buffer
+
+	// Review each changed file
+	totalTokens := 0
+	formatter := diff.NewFormatter()
+	for _, file := range reviewableFiles {
+		// Get guides for this file
+		guides, err := res.GetDiffGuides(file)
+		if err != nil {
+			fmt.Printf("Error getting guides for file: %v\n", err)
+			continue
+		}
+
+		if gr.Verbose {
+			fmt.Printf("Using diff guides: %v\n", guides)
+		}
+
+		// Get the structured diff data
+		diffData, err := gitClient.GetFileDiffData(base, head, file)
+		if err != nil {
+			fmt.Printf("Error getting diff for file: %v\n", err)
+			continue
+		}
+
+		// Create spinner
+		s := spinner.New(spinner.CharSets[spinnerCharSet], spinnerRefreshRate)
+		s.Suffix = " " + gr.Message
+		s.Start()
+
+		// Perform diff review (reviewing only the changes)
+		result, err := reviewer.ReviewDiff(cfg, diffData, file)
+
+		// Stop spinner
+		s.Stop()
+
+		if err != nil {
+			fmt.Printf("Error reviewing file: %v\n", err)
+			continue
+		}
+
+		// Format the output to include diffs
+		formattedContent := formatter.Format(result.Content)
+
+		if formattedContent != "" {
+			reviewOutput.WriteString(fmt.Sprintf("<details>\n"))
+			reviewOutput.WriteString(
+				fmt.Sprintf(
+					"<summary>📝 Review for <strong>%s</strong></summary>\n\n", file,
+				),
+			)
+			reviewOutput.WriteString(formattedContent)
+			reviewOutput.WriteString(fmt.Sprintf("\n</details>\n"))
+		}
+
+		if result.TokensUsed > 0 {
+			totalTokens += result.TokensUsed
+		}
+	}
+
+	// Post to GitHub
+	commentBody := fmt.Sprintf("# 🍲 miso Code review\n\n%s", reviewOutput.String())
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := ghClient.PostOrUpdateComment(ctx, prNumber, commentBody); err != nil {
+		return fmt.Errorf("failed to post comment to GitHub (PR #%d): %w", prNumber, err)
+	}
+	fmt.Printf("✅ Successfully posted review to PR #%d\n", prNumber)
+
+	// Clean up old comments
+	cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cleanupCancel()
+	if err := ghClient.CleanupOldComments(cleanupCtx, prNumber); err != nil {
+		// This is not a fatal error, so just log it.
+		if gr.Verbose {
+			log.Printf("Failed to clean up old comments: %v", err)
+		}
+	}
+
+	// Summary for verbose mode
+	if gr.Verbose {
+		log.Printf("Review completed: Files=%d, Tokens=%d, PR=#%d\n",
+			len(reviewableFiles), totalTokens, prNumber)
+	}
+
+	return nil
+}
+
 func (d *DiffCmd) Run(cli *CLI) error {
 	// Load configuration
-	parser := config.NewParser()
-	var cfg *config.Config
-	var err error
-
-	if cli.Config != "" {
-		cfg, err = parser.LoadFile(cli.Config)
-		if err != nil {
-			return fmt.Errorf(
-				"failed to load config file %s: %w", cli.Config, err,
-			)
-		}
-		if d.Verbose {
-			fmt.Printf("Using config file: %s\n", cli.Config)
-		}
-	} else {
-		cfg, err = parser.Load()
-		if err != nil {
-			return fmt.Errorf("failed to load configuration: %w", err)
-		}
-		if d.Verbose && len(cfg.Patterns) == 0 {
-			fmt.Println("Using default configuration (no config file found or config is empty)")
-		}
+	cfg, err := loadConfig(cli.Config, d.Verbose)
+	if err != nil {
+		return err
 	}
 
 	// Initialize git client
@@ -681,6 +842,33 @@ func renderRichOutput(content string) (string, error) {
 	}
 
 	return rendered, nil
+}
+
+func loadConfig(configPath string, verbose bool) (*config.Config, error) {
+	parser := config.NewParser()
+	var cfg *config.Config
+	var err error
+
+	if configPath != "" {
+		cfg, err = parser.LoadFile(configPath)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"failed to load config file %s: %w", configPath, err,
+			)
+		}
+		if verbose {
+			fmt.Printf("Using config file: %s\n", configPath)
+		}
+	} else {
+		cfg, err = parser.Load()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load configuration: %w", err)
+		}
+		if verbose && len(cfg.Patterns) == 0 {
+			fmt.Println("Using default configuration (no config file found or config is empty)")
+		}
+	}
+	return cfg, nil
 }
 
 func main() {

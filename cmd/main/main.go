@@ -462,11 +462,8 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 
 	// Summary for verbose mode
 	if gr.Verbose {
-		fmt.Printf("\n=== Summary ===\n")
-		fmt.Printf("Files reviewed: %d\n", len(reviewableFiles))
-		if totalTokens > 0 {
-			fmt.Printf("Total tokens used: %d\n", totalTokens)
-		}
+		log.Printf("Review completed: Files=%d, Tokens=%d, PR=#%d\n",
+			len(reviewableFiles), totalTokens, prNumber)
 	}
 
 	return nil

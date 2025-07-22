@@ -463,6 +463,16 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 	}
 	fmt.Printf("✅ Successfully posted review to PR #%d\n", prNumber)
 
+	// Clean up old comments
+	cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cleanupCancel()
+	if err := ghClient.CleanupOldComments(cleanupCtx, prNumber); err != nil {
+		// This is not a fatal error, so just log it.
+		if gr.Verbose {
+			log.Printf("Failed to clean up old comments: %v", err)
+		}
+	}
+
 	// Summary for verbose mode
 	if gr.Verbose {
 		log.Printf("Review completed: Files=%d, Tokens=%d, PR=#%d\n",

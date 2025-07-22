@@ -4,12 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/google/go-github/v57/github"
 	"golang.org/x/oauth2"
 )
+
+const BotCommentIdentifier = "🍲 miso Code review"
 
 type Client struct {
 	client *github.Client
@@ -80,7 +84,9 @@ func (c *Client) GetPRInfo() (*PREvent, error) {
 	return &event, nil
 }
 
-func (c *Client) FindBotComment(ctx context.Context, prNumber int, identifier string) (*github.IssueComment, error) {
+// findAllBotComments is a helper to find all comments by the bot matching an identifier.
+func (c *Client) findAllBotComments(ctx context.Context, prNumber int, identifier string) ([]*github.IssueComment, error) {
+	var botComments []*github.IssueComment
 	opts := &github.IssueListCommentsOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
 	}
@@ -99,7 +105,7 @@ func (c *Client) FindBotComment(ctx context.Context, prNumber int, identifier st
 		for _, comment := range comments {
 			if comment.User != nil && comment.User.GetType() == "Bot" &&
 				strings.Contains(comment.GetBody(), identifier) {
-				return comment, nil
+				botComments = append(botComments, comment)
 			}
 		}
 
@@ -109,11 +115,29 @@ func (c *Client) FindBotComment(ctx context.Context, prNumber int, identifier st
 		opts.Page = resp.NextPage
 	}
 
-	return nil, nil
+	return botComments, nil
+}
+
+func (c *Client) FindBotComment(ctx context.Context, prNumber int, identifier string) (*github.IssueComment, error) {
+	allComments, err := c.findAllBotComments(ctx, prNumber, identifier)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(allComments) == 0 {
+		return nil, nil
+	}
+
+	// Sort by creation time to find the most recent one
+	sort.Slice(allComments, func(i, j int) bool {
+		return allComments[i].GetCreatedAt().After(allComments[j].GetCreatedAt().Time)
+	})
+
+	return allComments[0], nil
 }
 
 func (c *Client) PostOrUpdateComment(ctx context.Context, prNumber int, content string) error {
-	identifier := "🍲 miso Code review"
+	identifier := BotCommentIdentifier
 
 	// Find existing comment
 	existing, err := c.FindBotComment(ctx, prNumber, identifier)
@@ -142,4 +166,38 @@ func (c *Client) PostOrUpdateComment(ctx context.Context, prNumber int, content 
 		return fmt.Errorf("GitHub API rate limit exceeded, please try again later")
 	}
 	return err
+}
+
+// CleanupOldComments finds all comments posted by the bot with the specific identifier
+// and deletes all but the most recent one.
+func (c *Client) CleanupOldComments(ctx context.Context, prNumber int) error {
+	identifier := BotCommentIdentifier
+	allBotComments, err := c.findAllBotComments(ctx, prNumber, identifier)
+	if err != nil {
+		return fmt.Errorf("failed to find bot comments for cleanup: %w", err)
+	}
+
+	if len(allBotComments) <= 1 {
+		return nil // Nothing to clean up
+	}
+
+	// Sort comments by creation time, newest first
+	sort.Slice(allBotComments, func(i, j int) bool {
+		return allBotComments[i].GetCreatedAt().After(allBotComments[j].GetCreatedAt().Time)
+	})
+
+	// Keep the first one (newest), delete the rest
+	commentsToDelete := allBotComments[1:]
+	if len(commentsToDelete) > 0 {
+		log.Printf("Cleaning up %d old bot comments for PR #%d", len(commentsToDelete), prNumber)
+	}
+	for _, comment := range commentsToDelete {
+		_, err := c.client.Issues.DeleteComment(ctx, c.owner, c.repo, comment.GetID())
+		if err != nil {
+			// Log error but continue trying to delete others
+			log.Printf("failed to delete old bot comment #%d: %v", comment.GetID(), err)
+		}
+	}
+
+	return nil
 }

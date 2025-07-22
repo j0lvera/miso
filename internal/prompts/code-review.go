@@ -39,7 +39,7 @@ func CodeReview(cfg *config.Config, code string, filename string) (
 	}
 
 	template := prompts.NewPromptTemplate(
-		`You are an expert code reviewer. Perform a two-pass review on the provided code.
+		`You are an expert code reviewer. Perform a two-pass review on the provided code. Do not add any introductory text, just the review.
 
 **FIRST PASS - General Code Health**
 Identify general issues based on the following criteria:
@@ -52,6 +52,8 @@ Identify general issues based on the following criteria:
 Review the code against the provided Architecture Guides. If no guides are provided, skip this pass.
 
 **Report Format:**
+# 🍲 miso Code review
+
 ## First Pass: General Issues
 [🔴 Critical | 🟡 Warning | 💡 Suggestion]
 

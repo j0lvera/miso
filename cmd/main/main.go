@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -256,7 +257,7 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 	if r.Style == "rich" {
 		rendered, err := renderRichOutput(formattedContent)
 		if err != nil {
-			// Fall back to plain output if rendering fails
+			log.Printf("Failed to initialize rich renderer: %v", err)
 			fmt.Println(formattedContent)
 		} else {
 			fmt.Print(rendered)

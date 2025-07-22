@@ -118,6 +118,13 @@ func (c *Client) findAllBotComments(ctx context.Context, prNumber int, identifie
 	return botComments, nil
 }
 
+// sortCommentsByCreatedDesc sorts comments by creation time, newest first.
+func sortCommentsByCreatedDesc(comments []*github.IssueComment) {
+	sort.Slice(comments, func(i, j int) bool {
+		return comments[i].GetCreatedAt().After(comments[j].GetCreatedAt().Time)
+	})
+}
+
 func (c *Client) FindBotComment(ctx context.Context, prNumber int, identifier string) (*github.IssueComment, error) {
 	allComments, err := c.findAllBotComments(ctx, prNumber, identifier)
 	if err != nil {
@@ -129,9 +136,7 @@ func (c *Client) FindBotComment(ctx context.Context, prNumber int, identifier st
 	}
 
 	// Sort by creation time to find the most recent one
-	sort.Slice(allComments, func(i, j int) bool {
-		return allComments[i].GetCreatedAt().After(allComments[j].GetCreatedAt().Time)
-	})
+	sortCommentsByCreatedDesc(allComments)
 
 	return allComments[0], nil
 }
@@ -182,9 +187,7 @@ func (c *Client) CleanupOldComments(ctx context.Context, prNumber int) error {
 	}
 
 	// Sort comments by creation time, newest first
-	sort.Slice(allBotComments, func(i, j int) bool {
-		return allBotComments[i].GetCreatedAt().After(allBotComments[j].GetCreatedAt().Time)
-	})
+	sortCommentsByCreatedDesc(allBotComments)
 
 	// Keep the first one (newest), delete the rest
 	commentsToDelete := allBotComments[1:]

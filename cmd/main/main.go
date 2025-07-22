@@ -456,7 +456,7 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 	// Post to GitHub
 	commentBody := fmt.Sprintf("# 🍲 miso Code review\n\n%s", reviewOutput.String())
 	if err := ghClient.PostOrUpdateComment(prNumber, commentBody); err != nil {
-		return fmt.Errorf("failed to post comment to GitHub: %w", err)
+		return fmt.Errorf("failed to post comment to GitHub (PR #%d): %w", prNumber, err)
 	}
 	fmt.Printf("✅ Successfully posted review to PR #%d\n", prNumber)
 

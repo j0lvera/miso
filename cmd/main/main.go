@@ -37,11 +37,11 @@ type CLI struct {
 }
 
 type ReviewCmd struct {
-	File    string `arg:"" required:"" help:"Path to the file to review" type:"existingfile"`
-	Verbose bool   `short:"v" help:"Enable verbose output"`
-	Message string `short:"m" help:"Message to display while processing" default:"Thinking..."`
-	DryRun  bool   `short:"d" help:"Show what would be reviewed without calling LLM"`
-	Style   string `short:"s" help:"Output style: plain (default) or rich (formatted with colors and markdown)" enum:"plain,rich" default:"plain"`
+	File        string `arg:"" required:"" help:"Path to the file to review" type:"existingfile"`
+	Verbose     bool   `short:"v" help:"Enable verbose output"`
+	Message     string `short:"m" help:"Message to display while processing" default:"Thinking..."`
+	DryRun      bool   `short:"d" help:"Show what would be reviewed without calling LLM"`
+	OutputStyle string `short:"s" name:"output-style" help:"Output style: plain (default) or rich (formatted with colors and markdown)" enum:"plain,rich" default:"plain"`
 }
 
 type VersionCmd struct{}
@@ -254,7 +254,7 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 	formattedContent := formatter.Format(result.Content)
 
 	// Apply glamour rendering if requested
-	if r.Style == "rich" {
+	if r.OutputStyle == "rich" {
 		rendered, err := renderRichOutput(formattedContent)
 		if err != nil {
 			log.Printf("Failed to initialize rich renderer: %v", err)

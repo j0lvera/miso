@@ -295,7 +295,7 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 
 	ghClient, err := misoGithub.NewClient("")
 	if err != nil {
-		return fmt.Errorf("failed to initialize GitHub client: %w. Check GITHUB_TOKEN and GITHUB_REPOSITORY env vars", err)
+		return fmt.Errorf("failed to initialize GitHub client (check GITHUB_TOKEN and GITHUB_REPOSITORY env vars): %w", err)
 	}
 
 	// Auto-detect PR info if not provided

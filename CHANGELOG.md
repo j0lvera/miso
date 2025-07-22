@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-07-21
+
 ### Added
 - Add `github` command with `review-pr` and `comment` subcommands for GitHub integration.
 - Add rich terminal output for reviews using `--output-style rich`.
@@ -61,7 +63,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Action for automating code reviews on pull requests.
 - Self-review capability for the miso codebase using a Go practices guide.
 
-[unreleased]: https://github.com/j0lvera/miso/compare/v0.3.2...HEAD
+[unreleased]: https://github.com/j0lvera/miso/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/j0lvera/miso/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/j0lvera/miso/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/j0lvera/miso/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/j0lvera/miso/compare/v0.2.1...v0.3.0

@@ -194,6 +194,11 @@ func (c *Client) CleanupOldComments(ctx context.Context, prNumber int) error {
 	for _, comment := range commentsToDelete {
 		_, err := c.client.Issues.DeleteComment(ctx, c.owner, c.repo, comment.GetID())
 		if err != nil {
+			if _, ok := err.(*github.RateLimitError); ok {
+				// Rate limit hit, stop trying to delete more comments
+				log.Printf("GitHub API rate limit exceeded while cleaning up comments, stopping cleanup")
+				return fmt.Errorf("GitHub API rate limit exceeded during cleanup")
+			}
 			// Log error but continue trying to delete others
 			log.Printf("failed to delete old bot comment #%d: %v", comment.GetID(), err)
 		}

@@ -218,21 +218,32 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 		return fmt.Errorf("review failed: %w", err)
 	}
 
-	// Format the output to include diffs
-	formatter := diff.NewFormatter()
-	formattedContent := formatter.Format(result.Content)
+	if len(result.Suggestions) == 0 {
+		fmt.Println("✅ No issues found.")
+		return nil
+	}
 
-	// Apply glamour rendering if requested
-	if r.OutputStyle == "rich" {
-		rendered, err := renderRichOutput(formattedContent)
-		if err != nil {
-			log.Printf("Failed to initialize rich renderer: %v", err)
-			fmt.Println(formattedContent)
+	fmt.Printf("# 🍲 miso Code review for %s\n\n", filename)
+
+	formatter := diff.NewFormatter()
+	for _, suggestion := range result.Suggestions {
+		// Format the body to render diffs correctly
+		formattedBody := formatter.Format(suggestion.Body)
+		fullSuggestion := fmt.Sprintf("## %s\n%s", suggestion.Title, formattedBody)
+
+		// Apply glamour rendering if requested
+		if r.OutputStyle == "rich" {
+			rendered, err := renderRichOutput(fullSuggestion)
+			if err != nil {
+				log.Printf("Failed to initialize rich renderer: %v", err)
+				fmt.Println(fullSuggestion) // Fallback to plain
+			} else {
+				fmt.Print(rendered)
+			}
 		} else {
-			fmt.Print(rendered)
+			fmt.Println(fullSuggestion)
 		}
-	} else {
-		fmt.Println(formattedContent)
+		fmt.Println() // Add a newline for separation
 	}
 
 	// Display token usage if available
@@ -435,18 +446,18 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 			continue
 		}
 
-		// Format the output to include diffs
-		formattedContent := formatter.Format(result.Content)
-
-		if formattedContent != "" {
+		if len(result.Suggestions) > 0 {
 			reviewOutput.WriteString(fmt.Sprintf("<details>\n"))
 			reviewOutput.WriteString(
 				fmt.Sprintf(
-					"<summary>📝 Review for <strong>%s</strong></summary>\n\n", file,
+					"<summary>📝 Review for <strong>%s</strong> (%d issues)</summary>\n\n", file, len(result.Suggestions),
 				),
 			)
-			reviewOutput.WriteString(formattedContent)
-			reviewOutput.WriteString(fmt.Sprintf("\n</details>\n"))
+			for _, suggestion := range result.Suggestions {
+				formattedBody := formatter.Format(suggestion.Body)
+				reviewOutput.WriteString(fmt.Sprintf("### %s\n%s\n\n", suggestion.Title, formattedBody))
+			}
+			reviewOutput.WriteString("</details>\n")
 		}
 
 		if result.TokensUsed > 0 {
@@ -455,7 +466,12 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 	}
 
 	// Post to GitHub
-	commentBody := fmt.Sprintf("# 🍲 miso Code review\n\n%s", reviewOutput.String())
+	var commentBody string
+	if reviewOutput.Len() > 0 {
+		commentBody = fmt.Sprintf("# 🍲 miso Code review\n\n%s", reviewOutput.String())
+	} else {
+		commentBody = "# 🍲 miso Code review\n\n✅ No issues found."
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	if err := ghClient.PostOrUpdateComment(ctx, prNumber, commentBody); err != nil {
@@ -591,15 +607,15 @@ func (d *DiffCmd) Run(cli *CLI) error {
 			continue
 		}
 
-		// Format the output to include diffs
-		formattedContent := formatter.Format(result.Content)
-
-		if formattedContent != "" {
+		if len(result.Suggestions) > 0 {
 			fmt.Printf("<details>\n")
 			fmt.Printf(
-				"<summary>📝 Review for <strong>%s</strong></summary>\n\n", file,
+				"<summary>📝 Review for <strong>%s</strong> (%d issues)</summary>\n\n", file, len(result.Suggestions),
 			)
-			fmt.Println(formattedContent)
+			for _, suggestion := range result.Suggestions {
+				formattedBody := formatter.Format(suggestion.Body)
+				fmt.Printf("### %s\n%s\n\n", suggestion.Title, formattedBody)
+			}
 			fmt.Printf("\n</details>\n")
 		}
 

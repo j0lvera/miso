@@ -77,28 +77,29 @@ func DiffReview(
 - Check for proper error handling in new code
 - Verify imports and dependencies are appropriate
 
+**Output Format:**
+Return your review as a JSON array of suggestion objects. Each object must have the following fields:
+- "id": A unique identifier for the suggestion (e.g., "miso-1A", "miso-1B").
+- "title": A concise, one-line summary of the issue, including a severity emoji (e.g., "🔴 Breaking", "🟡 Risky", "🟢 Safe", "🔴 Critical", "🟡 Warning", "💡 Suggestion", "❌ Inconsistent", "⚠️ Minor Issue").
+- "body": A detailed explanation of the issue in markdown format. The body must explain what's wrong, why it matters, and how to fix it. For code fixes, use this specific format:
+`+"```original\n"+`[the exact code to be replaced]`+"\n```\n"+"```suggestion\n"+`[the new code]`+"\n```"+`
+
+**Example JSON Output:**
+[
+  {
+    "id": "miso-1A",
+    "title": "🔴 Breaking: Function signature changed",
+    "body": "The signature of `+"`calculateTotal`"+` was changed, which will break existing callers.\n\n`+"```original\n"+`-func calculateTotal(price int, quantity int)`+"\n```\n"+"```suggestion\n"+`+func calculateTotal(price float64, quantity int)`+"\n```"+`"
+  }
+]
+
+If you find no issues, return an empty JSON array: [].
+Do not add any introductory text or markdown formatting around the JSON array.
+
 **DIFF TO REVIEW:**
 {{.changes_summary}}
 
 {{.formatted_diff}}
-
-**REPORT FORMAT:**
-## Change Impact Analysis
-[🔴 Breaking | 🟡 Risky | 🟢 Safe]
-
-## Code Quality Issues
-[🔴 Critical | 🟡 Warning | 💡 Suggestion]
-
-## Consistency & Patterns
-[❌ Inconsistent | ⚠️ Minor Issue | ✅ Good]
-
-For each issue provide:
-- Specific line numbers from the diff
-- What's wrong and severity level
-- Why it matters for this change
-- How to fix (with code examples)
-
-Focus on actionable feedback for the specific changes shown.
 
 File: {{.filename}}{{.guide}}`,
 		[]string{"changes_summary", "formatted_diff", "filename", "guide"},

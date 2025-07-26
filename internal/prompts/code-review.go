@@ -39,7 +39,7 @@ func CodeReview(cfg *config.Config, code string, filename string) (
 	}
 
 	template := prompts.NewPromptTemplate(
-		`You are an expert code reviewer. Perform a two-pass review on the provided code. Do not add any introductory text, just the review.
+		`You are an expert code reviewer. Perform a two-pass review on the provided code.
 
 **FIRST PASS - General Code Health**
 Identify general issues based on the following criteria:
@@ -51,22 +51,24 @@ Identify general issues based on the following criteria:
 **SECOND PASS - Architecture Compliance**
 Review the code against the provided Architecture Guides. If no guides are provided, skip this pass.
 
-**Report Format:**
-# 🍲 miso Code review
-
-## First Pass: General Issues
-[🔴 Critical | 🟡 Warning | 💡 Suggestion]
-
-## Second Pass: Architecture Violations
-[❌ Violation | ⚠️ Deviation]
-
-For each issue provide:
-- What's wrong and severity
-- Why it matters
-- How to fix. Use this specific format for the fix, with the original code and your suggested change:
+**Output Format:**
+Return your review as a JSON array of suggestion objects. Each object must have the following fields:
+- "id": A unique identifier for the suggestion (e.g., "miso-1A", "miso-1B").
+- "title": A concise, one-line summary of the issue, including a severity emoji (e.g., "🔴 Critical", "🟡 Warning", "💡 Suggestion", "❌ Violation", "⚠️ Deviation").
+- "body": A detailed explanation of the issue in markdown format. The body must explain what's wrong, why it matters, and how to fix it. For code fixes, use this specific format:
 `+"```original\n"+`[the exact code to be replaced]`+"\n```\n"+"```suggestion\n"+`[the new code]`+"\n```"+`
 
-Keep it concise - actionable issues only.
+**Example JSON Output:**
+[
+  {
+    "id": "miso-1A",
+    "title": "🔴 Critical: Lack of Error Handling",
+    "body": "The function `+"`doSomething`"+` can return an error that is not being checked. This could lead to unexpected behavior.\n\n`+"```original\n"+`result := doSomething()`+"\n```\n"+"```suggestion\n"+`result, err := doSomething()\nif err != nil {\n  return err\n}`+"\n```"+`"
+  }
+]
+
+If you find no issues, return an empty JSON array: [].
+Do not add any introductory text or markdown formatting around the JSON array.
 
 Code to review:
 '''

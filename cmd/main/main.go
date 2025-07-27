@@ -294,7 +294,7 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 }
 
 type DiffCmd struct {
-	Range       string `arg:"" optional:"" help:"Git range (e.g., main..HEAD, HEAD~1)" default:"HEAD~1"`
+	Range       string `arg:"" optional:"" help:"Git range (e.g., main..HEAD, HEAD~1)" default:"main..HEAD"`
 	Verbose     bool   `short:"v" help:"Enable verbose output"`
 	Message     string `short:"m" help:"Message to display while processing" default:"Analyzing changes..."`
 	DryRun      bool   `short:"d" help:"Show what would be reviewed without calling LLM"`

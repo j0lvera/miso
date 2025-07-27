@@ -78,9 +78,13 @@ func DiffReview(
 - Verify imports and dependencies are appropriate
 
 **Output Format:**
-Return your review as a JSON array of suggestion objects. Each object must have the following fields:
+Return your review as a JSON array of suggestion objects.
+- Provide only actionable suggestions for improvement. Do not comment on code that is already good.
+- Sort the suggestions in the final JSON array from most critical to least critical.
+
+Each object must have the following fields:
 - "id": A unique identifier for the suggestion (e.g., "miso-1A", "miso-1B").
-- "title": A concise, one-line summary of the issue, including a severity emoji (e.g., "🔴 Breaking", "🟡 Risky", "🟢 Safe", "🔴 Critical", "🟡 Warning", "💡 Suggestion", "❌ Inconsistent", "⚠️ Minor Issue").
+- "title": A concise, one-line summary of the issue, including a severity emoji (e.g., "🔴 Breaking", "🟡 Risky", "🔴 Critical", "🟡 Warning", "💡 Suggestion", "❌ Inconsistent", "⚠️ Minor Issue").
 - "body": A detailed explanation of the issue in markdown format. This should explain what's wrong and why it matters.
 - "original": (Optional) The exact code to be replaced.
 - "suggestion": (Optional) The new code.

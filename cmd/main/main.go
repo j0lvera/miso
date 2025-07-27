@@ -298,6 +298,7 @@ type DiffCmd struct {
 	Verbose bool   `short:"v" help:"Enable verbose output"`
 	Message string `short:"m" help:"Message to display while processing" default:"Analyzing changes..."`
 	DryRun  bool   `short:"d" help:"Show what would be reviewed without calling LLM"`
+	One     bool   `short:"1" name:"one" help:"Show only the first suggestion per file."`
 }
 
 type ValidateConfigCmd struct {
@@ -471,6 +472,10 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 		if err != nil {
 			fmt.Printf("Error reviewing file: %v\n", err)
 			continue
+		}
+
+		if d.One && len(result.Suggestions) > 0 {
+			result.Suggestions = result.Suggestions[:1]
 		}
 
 		if len(result.Suggestions) > 0 {

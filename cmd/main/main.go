@@ -541,8 +541,14 @@ func (d *DiffCmd) Run(cli *CLI) error {
 		return fmt.Errorf("failed to initialize git client: %w", err)
 	}
 
+	// Manually apply default if no range is provided.
+	rangeStr := d.Range
+	if rangeStr == "" {
+		rangeStr = "main..HEAD"
+	}
+
 	// Parse git range
-	base, head := git.ParseGitRange(d.Range)
+	base, head := git.ParseGitRange(rangeStr)
 
 	if d.Verbose {
 		fmt.Printf("Reviewing changes between %s and %s\n", base, head)

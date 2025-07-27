@@ -57,6 +57,7 @@ Return your review as a JSON array of suggestion objects. Each object must have 
 - "title": A concise, one-line summary of the issue, including a severity emoji (e.g., "🔴 Critical", "🟡 Warning", "💡 Suggestion", "❌ Violation", "⚠️ Deviation").
 - "body": A detailed explanation of the issue in markdown format. The body must explain what's wrong, why it matters, and how to fix it. For code fixes, use this specific format:
 `+"```original\n"+`[the exact code to be replaced]`+"\n```\n"+"```suggestion\n"+`[the new code]`+"\n```"+`
+The \"body\" field must be a valid JSON string, meaning all newlines inside the explanation must be escaped as \\n.
 
 **Example JSON Output:**
 [

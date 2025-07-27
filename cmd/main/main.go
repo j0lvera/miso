@@ -572,19 +572,28 @@ func (d *DiffCmd) Run(cli *CLI) error {
 	var reviewableFiles []string
 
 	if targetFile != "" {
+		// Convert user-provided file path to a relative path for comparison with git output.
+		relTargetFile := targetFile
+		cwd, err := os.Getwd()
+		if err == nil {
+			if rel, err := filepath.Rel(cwd, targetFile); err == nil {
+				relTargetFile = rel
+			}
+		}
+
 		fileIsChanged := false
 		for _, f := range files {
-			if f == targetFile {
+			if f == relTargetFile {
 				fileIsChanged = true
 				break
 			}
 		}
 
 		if fileIsChanged {
-			if res.ShouldReview(targetFile) {
-				reviewableFiles = append(reviewableFiles, targetFile)
+			if res.ShouldReview(relTargetFile) {
+				reviewableFiles = append(reviewableFiles, relTargetFile)
 			} else if d.Verbose {
-				fmt.Printf("Skipping %s (no matching patterns)\n", targetFile)
+				fmt.Printf("Skipping %s (no matching patterns)\n", relTargetFile)
 			}
 		} else {
 			fmt.Printf("File '%s' was not changed in the specified range.\n", targetFile)

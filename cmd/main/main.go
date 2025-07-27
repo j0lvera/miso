@@ -294,11 +294,12 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 }
 
 type DiffCmd struct {
-	Range   string `arg:"" optional:"" help:"Git range (e.g., main..HEAD, HEAD~1)" default:"HEAD~1"`
-	Verbose bool   `short:"v" help:"Enable verbose output"`
-	Message string `short:"m" help:"Message to display while processing" default:"Analyzing changes..."`
-	DryRun  bool   `short:"d" help:"Show what would be reviewed without calling LLM"`
-	One     bool   `short:"1" name:"one" help:"Show only the first suggestion per file."`
+	Range       string `arg:"" optional:"" help:"Git range (e.g., main..HEAD, HEAD~1)" default:"HEAD~1"`
+	Verbose     bool   `short:"v" help:"Enable verbose output"`
+	Message     string `short:"m" help:"Message to display while processing" default:"Analyzing changes..."`
+	DryRun      bool   `short:"d" help:"Show what would be reviewed without calling LLM"`
+	One         bool   `short:"1" name:"one" help:"Show only the first suggestion per file."`
+	OutputStyle string `short:"s" name:"output-style" help:"Output style: plain (default) or rich (formatted with colors and markdown)" enum:"plain,rich" default:"plain"`
 }
 
 type ValidateConfigCmd struct {
@@ -640,17 +641,19 @@ func (d *DiffCmd) Run(cli *CLI) error {
 			result.Suggestions = result.Suggestions[:1]
 		}
 
-		if len(result.Suggestions) > 0 {
-			fmt.Printf("<details>\n")
-			fmt.Printf(
-				"<summary>📝 Review for <strong>%s</strong> (%d issues)</summary>\n\n", file, len(result.Suggestions),
-			)
-			for _, suggestion := range result.Suggestions {
-				fullBody := buildSuggestionBody(suggestion)
-				formattedBody := formatter.Format(fullBody)
-				fmt.Printf("### %s\n%s\n\n", suggestion.Title, formattedBody)
+		markdownReport := formatSuggestionsToMarkdown(result.Suggestions, file)
+
+		// Apply glamour rendering if requested
+		if d.OutputStyle == "rich" && len(result.Suggestions) > 0 {
+			rendered, err := renderRichOutput(markdownReport)
+			if err != nil {
+				log.Printf("Failed to initialize rich renderer: %v", err)
+				fmt.Println(markdownReport) // Fallback to plain
+			} else {
+				fmt.Print(rendered)
 			}
-			fmt.Printf("\n</details>\n")
+		} else {
+			fmt.Println(markdownReport)
 		}
 
 		if result.TokensUsed > 0 {

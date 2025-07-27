@@ -474,10 +474,6 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 			continue
 		}
 
-		if d.One && len(result.Suggestions) > 0 {
-			result.Suggestions = result.Suggestions[:1]
-		}
-
 		if len(result.Suggestions) > 0 {
 			reviewOutput.WriteString(fmt.Sprintf("<details>\n"))
 			reviewOutput.WriteString(
@@ -638,6 +634,10 @@ func (d *DiffCmd) Run(cli *CLI) error {
 		if err != nil {
 			fmt.Printf("Error reviewing file: %v\n", err)
 			continue
+		}
+
+		if d.One && len(result.Suggestions) > 0 {
+			result.Suggestions = result.Suggestions[:1]
 		}
 
 		if len(result.Suggestions) > 0 {

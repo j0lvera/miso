@@ -154,6 +154,24 @@ func (tp *TestPatternCmd) Run(cli *CLI) error {
 	return nil
 }
 
+func formatSuggestionsToMarkdown(suggestions []agents.Suggestion, filename string) string {
+	if len(suggestions) == 0 {
+		return "✅ No issues found."
+	}
+
+	var builder strings.Builder
+	builder.WriteString(fmt.Sprintf("# 🍲 miso Code review for %s\n\n", filename))
+
+	formatter := diff.NewFormatter()
+	for _, suggestion := range suggestions {
+		// Format the body to render diffs correctly
+		formattedBody := formatter.Format(suggestion.Body)
+		builder.WriteString(fmt.Sprintf("## %s\n%s\n\n", suggestion.Title, formattedBody))
+	}
+
+	return builder.String()
+}
+
 func (r *ReviewCmd) Run(cli *CLI) error {
 	// Load configuration
 	cfg, err := loadConfig(cli.Config, r.Verbose)
@@ -218,32 +236,19 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 		return fmt.Errorf("review failed: %w", err)
 	}
 
-	if len(result.Suggestions) == 0 {
-		fmt.Println("✅ No issues found.")
-		return nil
-	}
+	markdownReport := formatSuggestionsToMarkdown(result.Suggestions, filename)
 
-	fmt.Printf("# 🍲 miso Code review for %s\n\n", filename)
-
-	formatter := diff.NewFormatter()
-	for _, suggestion := range result.Suggestions {
-		// Format the body to render diffs correctly
-		formattedBody := formatter.Format(suggestion.Body)
-		fullSuggestion := fmt.Sprintf("## %s\n%s", suggestion.Title, formattedBody)
-
-		// Apply glamour rendering if requested
-		if r.OutputStyle == "rich" {
-			rendered, err := renderRichOutput(fullSuggestion)
-			if err != nil {
-				log.Printf("Failed to initialize rich renderer: %v", err)
-				fmt.Println(fullSuggestion) // Fallback to plain
-			} else {
-				fmt.Print(rendered)
-			}
+	// Apply glamour rendering if requested
+	if r.OutputStyle == "rich" && len(result.Suggestions) > 0 {
+		rendered, err := renderRichOutput(markdownReport)
+		if err != nil {
+			log.Printf("Failed to initialize rich renderer: %v", err)
+			fmt.Println(markdownReport) // Fallback to plain
 		} else {
-			fmt.Println(fullSuggestion)
+			fmt.Print(rendered)
 		}
-		fmt.Println() // Add a newline for separation
+	} else {
+		fmt.Println(markdownReport)
 	}
 
 	// Display token usage if available

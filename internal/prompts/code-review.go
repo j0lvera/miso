@@ -63,7 +63,7 @@ Return your review as a JSON array of suggestion objects. Each object must have 
   {
     "id": "miso-1A",
     "title": "🔴 Critical: Lack of Error Handling",
-    "body": "The function `+"`doSomething`"+` can return an error that is not being checked. This could lead to unexpected behavior.\n\n`+"```original\n"+`result := doSomething()`+"\n```\n"+"```suggestion\n"+`result, err := doSomething()\nif err != nil {\n  return err\n}`+"\n```"+`"
+    "body": "The function `+"`doSomething`"+` can return an error that is not being checked. This could lead to unexpected behavior.\\n\\n`+"```original\\n"+`result := doSomething()`+"\\n```\\n"+"```suggestion\\n"+`result, err := doSomething()\\nif err != nil {\\n  return err\\n}`+"\\n```"+`"
   }
 ]
 

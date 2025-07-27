@@ -89,7 +89,7 @@ Return your review as a JSON array of suggestion objects. Each object must have 
   {
     "id": "miso-1A",
     "title": "🔴 Breaking: Function signature changed",
-    "body": "The signature of `+"`calculateTotal`"+` was changed, which will break existing callers.\n\n`+"```original\n"+`-func calculateTotal(price int, quantity int)`+"\n```\n"+"```suggestion\n"+`+func calculateTotal(price float64, quantity int)`+"\n```"+`"
+    "body": "The signature of `+"`calculateTotal`"+` was changed, which will break existing callers.\\n\\n`+"```original\\n"+`-func calculateTotal(price int, quantity int)`+"\\n```\\n"+"```suggestion\\n"+`+func calculateTotal(price float64, quantity int)`+"\\n```"+`"
   }
 ]
 

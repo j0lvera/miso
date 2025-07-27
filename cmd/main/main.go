@@ -294,7 +294,8 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 }
 
 type DiffCmd struct {
-	Args        []string `arg:"" optional:"" name:"range-or-file" help:"[range] [file]. Git range to review (defaults to 'main..HEAD'). Optionally, a file path to review within the range."`
+	Range       string   `short:"r" help:"Git range to review." default:"main..HEAD"`
+	File        string   `short:"f" help:"A specific file path to review within the range." type:"existingfile"`
 	Verbose     bool     `short:"v" help:"Enable verbose output"`
 	Message     string   `short:"m" help:"Message to display while processing" default:"Analyzing changes..."`
 	DryRun      bool     `short:"d" help:"Show what would be reviewed without calling LLM"`
@@ -541,26 +542,8 @@ func (d *DiffCmd) Run(cli *CLI) error {
 		return fmt.Errorf("failed to initialize git client: %w", err)
 	}
 
-	var rangeStr string
-	var targetFile string
-
-	switch len(d.Args) {
-	case 0:
-		rangeStr = "main..HEAD"
-	case 1:
-		// Could be a range or a file.
-		if _, err := os.Stat(d.Args[0]); err == nil {
-			targetFile = d.Args[0]
-			rangeStr = "main..HEAD"
-		} else {
-			rangeStr = d.Args[0]
-		}
-	case 2:
-		rangeStr = d.Args[0]
-		targetFile = d.Args[1]
-	default:
-		return fmt.Errorf("too many arguments for diff command, expected [range] [file]")
-	}
+	rangeStr := d.Range
+	targetFile := d.File
 
 	// Parse git range
 	base, head := git.ParseGitRange(rangeStr)

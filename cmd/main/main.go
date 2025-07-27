@@ -162,29 +162,47 @@ func buildSuggestionBody(suggestion agents.Suggestion) string {
 	if suggestion.Original != "" || suggestion.Suggestion != "" {
 		bodyBuilder.WriteString("\n\n")
 		bodyBuilder.WriteString("```original\n")
-		bodyBuilder.WriteString(strings.ReplaceAll(suggestion.Original, "\\n", "\n"))
+		bodyBuilder.WriteString(
+			strings.ReplaceAll(
+				suggestion.Original, "\\n", "\n",
+			),
+		)
 		bodyBuilder.WriteString("\n```\n")
 		bodyBuilder.WriteString("```suggestion\n")
-		bodyBuilder.WriteString(strings.ReplaceAll(suggestion.Suggestion, "\\n", "\n"))
+		bodyBuilder.WriteString(
+			strings.ReplaceAll(
+				suggestion.Suggestion, "\\n", "\n",
+			),
+		)
 		bodyBuilder.WriteString("\n```")
 	}
 	return bodyBuilder.String()
 }
 
-func formatSuggestionsToMarkdown(suggestions []agents.Suggestion, filename string) string {
+func formatSuggestionsToMarkdown(
+	suggestions []agents.Suggestion, filename string,
+) string {
 	if len(suggestions) == 0 {
 		return "✅ No issues found."
 	}
 
 	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf("# 🍲 miso Code review for %s\n\n", filename))
+	builder.WriteString(
+		fmt.Sprintf(
+			"# 🍲 miso Code review for %s\n\n", filename,
+		),
+	)
 
 	formatter := diff.NewFormatter()
 	for _, suggestion := range suggestions {
 		fullBody := buildSuggestionBody(suggestion)
 		// Format the body to render diffs correctly
 		formattedBody := formatter.Format(fullBody)
-		builder.WriteString(fmt.Sprintf("## %s\n%s\n\n", suggestion.Title, formattedBody))
+		builder.WriteString(
+			fmt.Sprintf(
+				"## %s\n%s\n\n", suggestion.Title, formattedBody,
+			),
+		)
 	}
 
 	return builder.String()
@@ -294,13 +312,13 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 }
 
 type DiffCmd struct {
-	Range       string   `short:"r" help:"Git range to review." default:"main..HEAD"`
-	File        string   `short:"f" help:"A specific file path to review within the range." type:"existingfile"`
-	Verbose     bool     `short:"v" help:"Enable verbose output"`
-	Message     string   `short:"m" help:"Message to display while processing" default:"Analyzing changes..."`
-	DryRun      bool     `short:"d" help:"Show what would be reviewed without calling LLM"`
-	One         bool     `short:"1" name:"one" help:"Show only the first suggestion per file."`
-	OutputStyle string   `short:"s" name:"output-style" help:"Output style: plain (default) or rich (formatted with colors and markdown)" enum:"plain,rich" default:"plain"`
+	Range       string `short:"r" help:"Git range to review." default:"main..HEAD"`
+	File        string `short:"f" help:"A specific file path to review within the range." type:"existingfile"`
+	Verbose     bool   `short:"v" help:"Enable verbose output"`
+	Message     string `short:"m" help:"Message to display while processing" default:"Analyzing changes..."`
+	DryRun      bool   `short:"d" help:"Show what would be reviewed without calling LLM"`
+	One         bool   `short:"1" name:"one" help:"Show only the first suggestion per file."`
+	OutputStyle string `short:"s" name:"output-style" help:"Output style: plain (default) or rich (formatted with colors and markdown)" enum:"plain,rich" default:"plain"`
 }
 
 type ValidateConfigCmd struct {
@@ -360,7 +378,10 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 
 	ghClient, err := misoGithub.NewClient("")
 	if err != nil {
-		return fmt.Errorf("failed to initialize GitHub client (check GITHUB_TOKEN and GITHUB_REPOSITORY env vars): %w", err)
+		return fmt.Errorf(
+			"failed to initialize GitHub client (check GITHUB_TOKEN and GITHUB_REPOSITORY env vars): %w",
+			err,
+		)
 	}
 
 	// Auto-detect PR info if not provided
@@ -480,13 +501,18 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 			reviewOutput.WriteString(fmt.Sprintf("<details>\n"))
 			reviewOutput.WriteString(
 				fmt.Sprintf(
-					"<summary>📝 Review for <strong>%s</strong> (%d issues)</summary>\n\n", file, len(result.Suggestions),
+					"<summary>📝 Review for <strong>%s</strong> (%d issues)</summary>\n\n",
+					file, len(result.Suggestions),
 				),
 			)
 			for _, suggestion := range result.Suggestions {
 				fullBody := buildSuggestionBody(suggestion)
 				formattedBody := formatter.Format(fullBody)
-				reviewOutput.WriteString(fmt.Sprintf("### %s\n%s\n\n", suggestion.Title, formattedBody))
+				reviewOutput.WriteString(
+					fmt.Sprintf(
+						"### %s\n%s\n\n", suggestion.Title, formattedBody,
+					),
+				)
 			}
 			reviewOutput.WriteString("</details>\n")
 		}
@@ -499,19 +525,27 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 	// Post to GitHub
 	var commentBody string
 	if reviewOutput.Len() > 0 {
-		commentBody = fmt.Sprintf("# 🍲 miso Code review\n\n%s", reviewOutput.String())
+		commentBody = fmt.Sprintf(
+			"# 🍲 miso Code review\n\n%s", reviewOutput.String(),
+		)
 	} else {
 		commentBody = "# 🍲 miso Code review\n\n✅ No issues found."
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	if err := ghClient.PostOrUpdateComment(ctx, prNumber, commentBody); err != nil {
-		return fmt.Errorf("failed to post comment to GitHub (PR #%d): %w", prNumber, err)
+	if err := ghClient.PostOrUpdateComment(
+		ctx, prNumber, commentBody,
+	); err != nil {
+		return fmt.Errorf(
+			"failed to post comment to GitHub (PR #%d): %w", prNumber, err,
+		)
 	}
 	fmt.Printf("✅ Successfully posted review to PR #%d\n", prNumber)
 
 	// Clean up old comments
-	cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	cleanupCtx, cleanupCancel := context.WithTimeout(
+		context.Background(), 30*time.Second,
+	)
 	defer cleanupCancel()
 	if err := ghClient.CleanupOldComments(cleanupCtx, prNumber); err != nil {
 		// This is not a fatal error, so just log it.
@@ -522,8 +556,10 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 
 	// Summary for verbose mode
 	if gr.Verbose {
-		log.Printf("Review completed: Files=%d, Tokens=%d, PR=#%d\n",
-			len(reviewableFiles), totalTokens, prNumber)
+		log.Printf(
+			"Review completed: Files=%d, Tokens=%d, PR=#%d\n",
+			len(reviewableFiles), totalTokens, prNumber,
+		)
 	}
 
 	return nil
@@ -593,10 +629,15 @@ func (d *DiffCmd) Run(cli *CLI) error {
 			if res.ShouldReview(relTargetFile) {
 				reviewableFiles = append(reviewableFiles, relTargetFile)
 			} else if d.Verbose {
-				fmt.Printf("Skipping %s (no matching patterns)\n", relTargetFile)
+				fmt.Printf(
+					"Skipping %s (no matching patterns)\n", relTargetFile,
+				)
 			}
 		} else {
-			fmt.Printf("File '%s' was not changed in the specified range.\n", targetFile)
+			fmt.Printf(
+				"File '%s' was not changed in the specified range.\n",
+				targetFile,
+			)
 			return nil
 		}
 	} else {

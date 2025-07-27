@@ -46,6 +46,7 @@ type ReviewCmd struct {
 	Message     string `short:"m" help:"Message to display while processing" default:"Thinking..."`
 	DryRun      bool   `short:"d" help:"Show what would be reviewed without calling LLM"`
 	OutputStyle string `short:"s" name:"output-style" help:"Output style: plain (default) or rich (formatted with colors and markdown)" enum:"plain,rich" default:"plain"`
+	One         bool   `short:"1" name:"one" help:"Show only the first suggestion."`
 }
 
 type VersionCmd struct{}
@@ -251,6 +252,10 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 
 	if err != nil {
 		return fmt.Errorf("review failed: %w", err)
+	}
+
+	if r.One && len(result.Suggestions) > 0 {
+		result.Suggestions = result.Suggestions[:1]
 	}
 
 	markdownReport := formatSuggestionsToMarkdown(result.Suggestions, filename)

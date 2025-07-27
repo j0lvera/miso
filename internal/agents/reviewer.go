@@ -2,9 +2,11 @@ package agents
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/j0lvera/miso/internal/config"
 	"github.com/j0lvera/miso/internal/git"
@@ -33,10 +35,19 @@ func (t *headerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return t.base.RoundTrip(req2)
 }
 
+// Suggestion represents a single review comment from the LLM.
+type Suggestion struct {
+	ID         string `json:"id"`
+	Title      string `json:"title"`
+	Body       string `json:"body"`
+	Original   string `json:"original,omitempty"`
+	Suggestion string `json:"suggestion,omitempty"`
+}
+
 // ReviewResult holds the review content and token usage information from an LLM call.
 // Provides details about the review content and associated costs.
 type ReviewResult struct {
-	Content      string
+	Suggestions  []Suggestion
 	TokensUsed   int
 	InputTokens  int
 	OutputTokens int
@@ -143,9 +154,28 @@ func (cr *CodeReviewer) callLLM(prompt string) (*ReviewResult, error) {
 		content = resp.Choices[0].Content
 	}
 
+	// Find the start of the JSON array to strip any leading text.
+	startIndex := strings.Index(content, "[")
+	if startIndex == -1 {
+		return nil, fmt.Errorf("failed to find start of JSON array in LLM response\nRaw response:\n%s", content)
+	}
+
+	// Find the end of the JSON array
+	endIndex := strings.LastIndex(content, "]")
+	if endIndex == -1 {
+		return nil, fmt.Errorf("failed to find end of JSON array in LLM response\nRaw response:\n%s", content)
+	}
+
+	jsonStr := content[startIndex : endIndex+1]
+
+	var suggestions []Suggestion
+	if err := json.Unmarshal([]byte(jsonStr), &suggestions); err != nil {
+		return nil, fmt.Errorf("failed to parse LLM JSON response: %w\nRaw response:\n%s", err, content)
+	}
+
 	// Create result with content
 	result := &ReviewResult{
-		Content: content,
+		Suggestions: suggestions,
 	}
 
 	// Check if usage information is available in the response

@@ -39,7 +39,7 @@ func CodeReview(cfg *config.Config, code string, filename string) (
 	}
 
 	template := prompts.NewPromptTemplate(
-		`You are an expert code reviewer. Perform a two-pass review on the provided code. Do not add any introductory text, just the review.
+		`You are an expert code reviewer. Perform a two-pass review on the provided code.
 
 **FIRST PASS - General Code Health**
 Identify general issues based on the following criteria:
@@ -51,22 +51,33 @@ Identify general issues based on the following criteria:
 **SECOND PASS - Architecture Compliance**
 Review the code against the provided Architecture Guides. If no guides are provided, skip this pass.
 
-**Report Format:**
-# 🍲 miso Code review
+**Output Format:**
+Return your review as a JSON array of suggestion objects.
+- Provide only actionable suggestions for improvement. Do not comment on code that is already good.
+- Sort the suggestions in the final JSON array from most critical to least critical.
 
-## First Pass: General Issues
-[🔴 Critical | 🟡 Warning | 💡 Suggestion]
+Each object must have the following fields:
+- "id": A unique identifier for the suggestion (e.g., "miso-1A", "miso-1B").
+- "title": A concise, one-line summary of the issue, including a severity emoji (e.g., "🔴 Critical", "🟡 Warning", "💡 Suggestion", "❌ Violation", "⚠️ Deviation").
+- "body": A detailed explanation of the issue in markdown format. This should explain what's wrong and why it matters.
+- "original": (Optional) The exact code to be replaced.
+- "suggestion": (Optional) The new code.
 
-## Second Pass: Architecture Violations
-[❌ Violation | ⚠️ Deviation]
+The "body", "original", and "suggestion" fields must be valid JSON strings, meaning all newlines inside them must be escaped as \\n.
 
-For each issue provide:
-- What's wrong and severity
-- Why it matters
-- How to fix. Use this specific format for the fix, with the original code and your suggested change:
-`+"```original\n"+`[the exact code to be replaced]`+"\n```\n"+"```suggestion\n"+`[the new code]`+"\n```"+`
+**Example JSON Output:**
+[
+  {
+    "id": "miso-1A",
+    "title": "🔴 Critical: Lack of Error Handling",
+    "body": "The function `+"`doSomething`"+` can return an error that is not being checked. This could lead to unexpected behavior.",
+    "original": "result := doSomething()",
+    "suggestion": "result, err := doSomething()\\nif err != nil {\\n  return err\\n}"
+  }
+]
 
-Keep it concise - actionable issues only.
+If you find no issues, return an empty JSON array: [].
+Do not add any introductory text or markdown formatting around the JSON array.
 
 Code to review:
 '''

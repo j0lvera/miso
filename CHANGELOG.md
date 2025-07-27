@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add `--one` option to `diff` command to show only the first suggestion per file.
+- Add `--output-style rich` option to `diff` command for formatted output.
+- Add `--file` option to `diff` command to review a specific file within a range.
+
+### Changed
+- Change default git range for `diff` command to `main..HEAD`.
+- Refactor `diff` command to use `--range` and `--file` flags instead of positional arguments for clarity.
+
+### Fixed
+- Fix `diff` command to correctly handle relative file paths.
+- Update internal tests to align with current data structures and prompt formats.
+
 ## [0.4.0] - 2025-07-21
 
 ### Added

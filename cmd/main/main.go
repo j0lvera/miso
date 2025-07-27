@@ -46,6 +46,7 @@ type ReviewCmd struct {
 	Message     string `short:"m" help:"Message to display while processing" default:"Thinking..."`
 	DryRun      bool   `short:"d" help:"Show what would be reviewed without calling LLM"`
 	OutputStyle string `short:"s" name:"output-style" help:"Output style: plain (default) or rich (formatted with colors and markdown)" enum:"plain,rich" default:"plain"`
+	One         bool   `short:"1" name:"one" help:"Show only the first suggestion."`
 }
 
 type VersionCmd struct{}
@@ -154,6 +155,41 @@ func (tp *TestPatternCmd) Run(cli *CLI) error {
 	return nil
 }
 
+func buildSuggestionBody(suggestion agents.Suggestion) string {
+	var bodyBuilder strings.Builder
+	bodyBuilder.WriteString(strings.ReplaceAll(suggestion.Body, "\\n", "\n"))
+
+	if suggestion.Original != "" || suggestion.Suggestion != "" {
+		bodyBuilder.WriteString("\n\n")
+		bodyBuilder.WriteString("```original\n")
+		bodyBuilder.WriteString(strings.ReplaceAll(suggestion.Original, "\\n", "\n"))
+		bodyBuilder.WriteString("\n```\n")
+		bodyBuilder.WriteString("```suggestion\n")
+		bodyBuilder.WriteString(strings.ReplaceAll(suggestion.Suggestion, "\\n", "\n"))
+		bodyBuilder.WriteString("\n```")
+	}
+	return bodyBuilder.String()
+}
+
+func formatSuggestionsToMarkdown(suggestions []agents.Suggestion, filename string) string {
+	if len(suggestions) == 0 {
+		return "✅ No issues found."
+	}
+
+	var builder strings.Builder
+	builder.WriteString(fmt.Sprintf("# 🍲 miso Code review for %s\n\n", filename))
+
+	formatter := diff.NewFormatter()
+	for _, suggestion := range suggestions {
+		fullBody := buildSuggestionBody(suggestion)
+		// Format the body to render diffs correctly
+		formattedBody := formatter.Format(fullBody)
+		builder.WriteString(fmt.Sprintf("## %s\n%s\n\n", suggestion.Title, formattedBody))
+	}
+
+	return builder.String()
+}
+
 func (r *ReviewCmd) Run(cli *CLI) error {
 	// Load configuration
 	cfg, err := loadConfig(cli.Config, r.Verbose)
@@ -218,21 +254,23 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 		return fmt.Errorf("review failed: %w", err)
 	}
 
-	// Format the output to include diffs
-	formatter := diff.NewFormatter()
-	formattedContent := formatter.Format(result.Content)
+	if r.One && len(result.Suggestions) > 0 {
+		result.Suggestions = result.Suggestions[:1]
+	}
+
+	markdownReport := formatSuggestionsToMarkdown(result.Suggestions, filename)
 
 	// Apply glamour rendering if requested
-	if r.OutputStyle == "rich" {
-		rendered, err := renderRichOutput(formattedContent)
+	if r.OutputStyle == "rich" && len(result.Suggestions) > 0 {
+		rendered, err := renderRichOutput(markdownReport)
 		if err != nil {
 			log.Printf("Failed to initialize rich renderer: %v", err)
-			fmt.Println(formattedContent)
+			fmt.Println(markdownReport) // Fallback to plain
 		} else {
 			fmt.Print(rendered)
 		}
 	} else {
-		fmt.Println(formattedContent)
+		fmt.Println(markdownReport)
 	}
 
 	// Display token usage if available
@@ -256,10 +294,13 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 }
 
 type DiffCmd struct {
-	Range   string `arg:"" optional:"" help:"Git range (e.g., main..HEAD, HEAD~1)" default:"HEAD~1"`
-	Verbose bool   `short:"v" help:"Enable verbose output"`
-	Message string `short:"m" help:"Message to display while processing" default:"Analyzing changes..."`
-	DryRun  bool   `short:"d" help:"Show what would be reviewed without calling LLM"`
+	Range       string   `short:"r" help:"Git range to review." default:"main..HEAD"`
+	File        string   `short:"f" help:"A specific file path to review within the range." type:"existingfile"`
+	Verbose     bool     `short:"v" help:"Enable verbose output"`
+	Message     string   `short:"m" help:"Message to display while processing" default:"Analyzing changes..."`
+	DryRun      bool     `short:"d" help:"Show what would be reviewed without calling LLM"`
+	One         bool     `short:"1" name:"one" help:"Show only the first suggestion per file."`
+	OutputStyle string   `short:"s" name:"output-style" help:"Output style: plain (default) or rich (formatted with colors and markdown)" enum:"plain,rich" default:"plain"`
 }
 
 type ValidateConfigCmd struct {
@@ -435,18 +476,19 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 			continue
 		}
 
-		// Format the output to include diffs
-		formattedContent := formatter.Format(result.Content)
-
-		if formattedContent != "" {
+		if len(result.Suggestions) > 0 {
 			reviewOutput.WriteString(fmt.Sprintf("<details>\n"))
 			reviewOutput.WriteString(
 				fmt.Sprintf(
-					"<summary>📝 Review for <strong>%s</strong></summary>\n\n", file,
+					"<summary>📝 Review for <strong>%s</strong> (%d issues)</summary>\n\n", file, len(result.Suggestions),
 				),
 			)
-			reviewOutput.WriteString(formattedContent)
-			reviewOutput.WriteString(fmt.Sprintf("\n</details>\n"))
+			for _, suggestion := range result.Suggestions {
+				fullBody := buildSuggestionBody(suggestion)
+				formattedBody := formatter.Format(fullBody)
+				reviewOutput.WriteString(fmt.Sprintf("### %s\n%s\n\n", suggestion.Title, formattedBody))
+			}
+			reviewOutput.WriteString("</details>\n")
 		}
 
 		if result.TokensUsed > 0 {
@@ -455,7 +497,12 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 	}
 
 	// Post to GitHub
-	commentBody := fmt.Sprintf("# 🍲 miso Code review\n\n%s", reviewOutput.String())
+	var commentBody string
+	if reviewOutput.Len() > 0 {
+		commentBody = fmt.Sprintf("# 🍲 miso Code review\n\n%s", reviewOutput.String())
+	} else {
+		commentBody = "# 🍲 miso Code review\n\n✅ No issues found."
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	if err := ghClient.PostOrUpdateComment(ctx, prNumber, commentBody); err != nil {
@@ -495,8 +542,11 @@ func (d *DiffCmd) Run(cli *CLI) error {
 		return fmt.Errorf("failed to initialize git client: %w", err)
 	}
 
+	rangeStr := d.Range
+	targetFile := d.File
+
 	// Parse git range
-	base, head := git.ParseGitRange(d.Range)
+	base, head := git.ParseGitRange(rangeStr)
 
 	if d.Verbose {
 		fmt.Printf("Reviewing changes between %s and %s\n", base, head)
@@ -520,11 +570,42 @@ func (d *DiffCmd) Run(cli *CLI) error {
 	// Filter files that should be reviewed
 	res := resolver.NewResolver(cfg)
 	var reviewableFiles []string
-	for _, file := range files {
-		if res.ShouldReview(file) {
-			reviewableFiles = append(reviewableFiles, file)
-		} else if d.Verbose {
-			fmt.Printf("Skipping %s (no matching patterns)\n", file)
+
+	if targetFile != "" {
+		// Convert user-provided file path to a relative path for comparison with git output.
+		relTargetFile := targetFile
+		cwd, err := os.Getwd()
+		if err == nil {
+			if rel, err := filepath.Rel(cwd, targetFile); err == nil {
+				relTargetFile = rel
+			}
+		}
+
+		fileIsChanged := false
+		for _, f := range files {
+			if f == relTargetFile {
+				fileIsChanged = true
+				break
+			}
+		}
+
+		if fileIsChanged {
+			if res.ShouldReview(relTargetFile) {
+				reviewableFiles = append(reviewableFiles, relTargetFile)
+			} else if d.Verbose {
+				fmt.Printf("Skipping %s (no matching patterns)\n", relTargetFile)
+			}
+		} else {
+			fmt.Printf("File '%s' was not changed in the specified range.\n", targetFile)
+			return nil
+		}
+	} else {
+		for _, file := range files {
+			if res.ShouldReview(file) {
+				reviewableFiles = append(reviewableFiles, file)
+			} else if d.Verbose {
+				fmt.Printf("Skipping %s (no matching patterns)\n", file)
+			}
 		}
 	}
 
@@ -550,9 +631,6 @@ func (d *DiffCmd) Run(cli *CLI) error {
 	if err != nil {
 		return fmt.Errorf("failed to create reviewer: %w", err)
 	}
-
-	// Initialize diff formatter
-	formatter := diff.NewFormatter()
 
 	// Review each changed file
 	totalTokens := 0
@@ -591,16 +669,23 @@ func (d *DiffCmd) Run(cli *CLI) error {
 			continue
 		}
 
-		// Format the output to include diffs
-		formattedContent := formatter.Format(result.Content)
+		if d.One && len(result.Suggestions) > 0 {
+			result.Suggestions = result.Suggestions[:1]
+		}
 
-		if formattedContent != "" {
-			fmt.Printf("<details>\n")
-			fmt.Printf(
-				"<summary>📝 Review for <strong>%s</strong></summary>\n\n", file,
-			)
-			fmt.Println(formattedContent)
-			fmt.Printf("\n</details>\n")
+		markdownReport := formatSuggestionsToMarkdown(result.Suggestions, file)
+
+		// Apply glamour rendering if requested
+		if d.OutputStyle == "rich" && len(result.Suggestions) > 0 {
+			rendered, err := renderRichOutput(markdownReport)
+			if err != nil {
+				log.Printf("Failed to initialize rich renderer: %v", err)
+				fmt.Println(markdownReport) // Fallback to plain
+			} else {
+				fmt.Print(rendered)
+			}
+		} else {
+			fmt.Println(markdownReport)
 		}
 
 		if result.TokensUsed > 0 {

@@ -597,9 +597,6 @@ func (d *DiffCmd) Run(cli *CLI) error {
 		return fmt.Errorf("failed to create reviewer: %w", err)
 	}
 
-	// Initialize diff formatter
-	formatter := diff.NewFormatter()
-
 	// Review each changed file
 	totalTokens := 0
 	for _, file := range reviewableFiles {

@@ -101,8 +101,8 @@ func main() {
 					if result == nil {
 						t.Error("Expected non-nil result")
 					}
-					if result.Content == "" {
-						t.Error("Expected non-empty content")
+					if len(result.Suggestions) == 0 {
+						t.Error("Expected non-empty suggestions")
 					}
 				}
 			},
@@ -186,8 +186,8 @@ func TestCodeReviewer_ReviewDiff(t *testing.T) {
 					if result == nil {
 						t.Error("Expected non-nil result")
 					}
-					if result.Content == "" {
-						t.Error("Expected non-empty content")
+					if len(result.Suggestions) == 0 {
+						t.Error("Expected non-empty suggestions")
 					}
 				}
 			},
@@ -246,16 +246,24 @@ func TestCodeReviewer_callLLM(t *testing.T) {
 // Mock tests for unit testing without API calls
 func TestReviewResult_Structure(t *testing.T) {
 	result := &ReviewResult{
-		Content:      "Test review content",
+		Suggestions: []Suggestion{
+			{
+				Title: "Test review content",
+			},
+		},
 		TokensUsed:   100,
 		InputTokens:  60,
 		OutputTokens: 40,
 		Cost:         0.001,
 	}
 
-	if result.Content != "Test review content" {
+	if len(result.Suggestions) != 1 {
+		t.Fatalf("Expected 1 suggestion, got %d", len(result.Suggestions))
+	}
+
+	if result.Suggestions[0].Title != "Test review content" {
 		t.Errorf(
-			"Expected content 'Test review content', got %s", result.Content,
+			"Expected content 'Test review content', got %s", result.Suggestions[0].Title,
 		)
 	}
 

@@ -55,9 +55,9 @@ func TestDiffReview(t *testing.T) {
 				"File: test.go",
 				"@@ -1,2 +1,3 @@",
 				"+import \"fmt\"",
-				"Change Impact Analysis",
-				"Code Quality Issues",
-				"Consistency & Patterns",
+				"**CHANGE ANALYSIS FOCUS:**",
+				"**REVIEW GUIDELINES:**",
+				"**Output Format:**",
 			},
 		},
 		{

@@ -164,8 +164,10 @@ func formatSuggestionsToMarkdown(suggestions []agents.Suggestion, filename strin
 
 	formatter := diff.NewFormatter()
 	for _, suggestion := range suggestions {
+		// Unescape newlines from the JSON string body
+		unescapedBody := strings.ReplaceAll(suggestion.Body, "\\n", "\n")
 		// Format the body to render diffs correctly
-		formattedBody := formatter.Format(suggestion.Body)
+		formattedBody := formatter.Format(unescapedBody)
 		builder.WriteString(fmt.Sprintf("## %s\n%s\n\n", suggestion.Title, formattedBody))
 	}
 
@@ -459,7 +461,9 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 				),
 			)
 			for _, suggestion := range result.Suggestions {
-				formattedBody := formatter.Format(suggestion.Body)
+				// Unescape newlines from the JSON string body
+				unescapedBody := strings.ReplaceAll(suggestion.Body, "\\n", "\n")
+				formattedBody := formatter.Format(unescapedBody)
 				reviewOutput.WriteString(fmt.Sprintf("### %s\n%s\n\n", suggestion.Title, formattedBody))
 			}
 			reviewOutput.WriteString("</details>\n")
@@ -618,7 +622,9 @@ func (d *DiffCmd) Run(cli *CLI) error {
 				"<summary>📝 Review for <strong>%s</strong> (%d issues)</summary>\n\n", file, len(result.Suggestions),
 			)
 			for _, suggestion := range result.Suggestions {
-				formattedBody := formatter.Format(suggestion.Body)
+				// Unescape newlines from the JSON string body
+				unescapedBody := strings.ReplaceAll(suggestion.Body, "\\n", "\n")
+				formattedBody := formatter.Format(unescapedBody)
 				fmt.Printf("### %s\n%s\n\n", suggestion.Title, formattedBody)
 			}
 			fmt.Printf("\n</details>\n")

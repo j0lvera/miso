@@ -154,16 +154,22 @@ func (cr *CodeReviewer) callLLM(prompt string) (*ReviewResult, error) {
 		content = resp.Choices[0].Content
 	}
 
-	// Clean up potential markdown code blocks around the JSON
-	content = strings.TrimSpace(content)
-	if strings.HasPrefix(content, "```json") {
-		content = strings.TrimPrefix(content, "```json")
-		content = strings.TrimSuffix(content, "```")
-		content = strings.TrimSpace(content)
+	// Find the start of the JSON array to strip any leading text.
+	startIndex := strings.Index(content, "[")
+	if startIndex == -1 {
+		return nil, fmt.Errorf("failed to find start of JSON array in LLM response\nRaw response:\n%s", content)
 	}
 
+	// Find the end of the JSON array
+	endIndex := strings.LastIndex(content, "]")
+	if endIndex == -1 {
+		return nil, fmt.Errorf("failed to find end of JSON array in LLM response\nRaw response:\n%s", content)
+	}
+
+	jsonStr := content[startIndex : endIndex+1]
+
 	var suggestions []Suggestion
-	if err := json.Unmarshal([]byte(content), &suggestions); err != nil {
+	if err := json.Unmarshal([]byte(jsonStr), &suggestions); err != nil {
 		return nil, fmt.Errorf("failed to parse LLM JSON response: %w\nRaw response:\n%s", err, content)
 	}
 

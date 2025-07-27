@@ -294,12 +294,12 @@ func (r *ReviewCmd) Run(cli *CLI) error {
 }
 
 type DiffCmd struct {
-	Range       string `arg:"" optional:"" help:"Git range (e.g., main..HEAD, HEAD~1)" default:"main..HEAD"`
-	Verbose     bool   `short:"v" help:"Enable verbose output"`
-	Message     string `short:"m" help:"Message to display while processing" default:"Analyzing changes..."`
-	DryRun      bool   `short:"d" help:"Show what would be reviewed without calling LLM"`
-	One         bool   `short:"1" name:"one" help:"Show only the first suggestion per file."`
-	OutputStyle string `short:"s" name:"output-style" help:"Output style: plain (default) or rich (formatted with colors and markdown)" enum:"plain,rich" default:"plain"`
+	Args        []string `arg:"" optional:"" name:"range-or-file" help:"A git range and/or a file path."`
+	Verbose     bool     `short:"v" help:"Enable verbose output"`
+	Message     string   `short:"m" help:"Message to display while processing" default:"Analyzing changes..."`
+	DryRun      bool     `short:"d" help:"Show what would be reviewed without calling LLM"`
+	One         bool     `short:"1" name:"one" help:"Show only the first suggestion per file."`
+	OutputStyle string   `short:"s" name:"output-style" help:"Output style: plain (default) or rich (formatted with colors and markdown)" enum:"plain,rich" default:"plain"`
 }
 
 type ValidateConfigCmd struct {
@@ -541,10 +541,25 @@ func (d *DiffCmd) Run(cli *CLI) error {
 		return fmt.Errorf("failed to initialize git client: %w", err)
 	}
 
-	// Manually apply default if no range is provided.
-	rangeStr := d.Range
-	if rangeStr == "" {
+	var rangeStr string
+	var targetFile string
+
+	switch len(d.Args) {
+	case 0:
 		rangeStr = "main..HEAD"
+	case 1:
+		// Could be a range or a file.
+		if _, err := os.Stat(d.Args[0]); err == nil {
+			targetFile = d.Args[0]
+			rangeStr = "main..HEAD"
+		} else {
+			rangeStr = d.Args[0]
+		}
+	case 2:
+		rangeStr = d.Args[0]
+		targetFile = d.Args[1]
+	default:
+		return fmt.Errorf("too many arguments for diff command, expected [range] [file]")
 	}
 
 	// Parse git range
@@ -572,11 +587,33 @@ func (d *DiffCmd) Run(cli *CLI) error {
 	// Filter files that should be reviewed
 	res := resolver.NewResolver(cfg)
 	var reviewableFiles []string
-	for _, file := range files {
-		if res.ShouldReview(file) {
-			reviewableFiles = append(reviewableFiles, file)
-		} else if d.Verbose {
-			fmt.Printf("Skipping %s (no matching patterns)\n", file)
+
+	if targetFile != "" {
+		fileIsChanged := false
+		for _, f := range files {
+			if f == targetFile {
+				fileIsChanged = true
+				break
+			}
+		}
+
+		if fileIsChanged {
+			if res.ShouldReview(targetFile) {
+				reviewableFiles = append(reviewableFiles, targetFile)
+			} else if d.Verbose {
+				fmt.Printf("Skipping %s (no matching patterns)\n", targetFile)
+			}
+		} else {
+			fmt.Printf("File '%s' was not changed in the specified range.\n", targetFile)
+			return nil
+		}
+	} else {
+		for _, file := range files {
+			if res.ShouldReview(file) {
+				reviewableFiles = append(reviewableFiles, file)
+			} else if d.Verbose {
+				fmt.Printf("Skipping %s (no matching patterns)\n", file)
+			}
 		}
 	}
 

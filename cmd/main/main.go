@@ -22,7 +22,7 @@ import (
 	"github.com/j0lvera/miso/internal/resolver"
 )
 
-var version = "0.4.0"
+var version = "0.5.0"
 
 const (
 	spinnerCharSet     = 14

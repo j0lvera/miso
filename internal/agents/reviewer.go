@@ -37,9 +37,11 @@ func (t *headerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 // Suggestion represents a single review comment from the LLM.
 type Suggestion struct {
-	ID    string `json:"id"`
-	Title string `json:"title"`
-	Body  string `json:"body"`
+	ID         string `json:"id"`
+	Title      string `json:"title"`
+	Body       string `json:"body"`
+	Original   string `json:"original,omitempty"`
+	Suggestion string `json:"suggestion,omitempty"`
 }
 
 // ReviewResult holds the review content and token usage information from an LLM call.

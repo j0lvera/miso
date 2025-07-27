@@ -154,6 +154,22 @@ func (tp *TestPatternCmd) Run(cli *CLI) error {
 	return nil
 }
 
+func buildSuggestionBody(suggestion agents.Suggestion) string {
+	var bodyBuilder strings.Builder
+	bodyBuilder.WriteString(strings.ReplaceAll(suggestion.Body, "\\n", "\n"))
+
+	if suggestion.Original != "" || suggestion.Suggestion != "" {
+		bodyBuilder.WriteString("\n\n")
+		bodyBuilder.WriteString("```original\n")
+		bodyBuilder.WriteString(strings.ReplaceAll(suggestion.Original, "\\n", "\n"))
+		bodyBuilder.WriteString("\n```\n")
+		bodyBuilder.WriteString("```suggestion\n")
+		bodyBuilder.WriteString(strings.ReplaceAll(suggestion.Suggestion, "\\n", "\n"))
+		bodyBuilder.WriteString("\n```")
+	}
+	return bodyBuilder.String()
+}
+
 func formatSuggestionsToMarkdown(suggestions []agents.Suggestion, filename string) string {
 	if len(suggestions) == 0 {
 		return "✅ No issues found."
@@ -164,10 +180,9 @@ func formatSuggestionsToMarkdown(suggestions []agents.Suggestion, filename strin
 
 	formatter := diff.NewFormatter()
 	for _, suggestion := range suggestions {
-		// Unescape newlines from the JSON string body
-		unescapedBody := strings.ReplaceAll(suggestion.Body, "\\n", "\n")
+		fullBody := buildSuggestionBody(suggestion)
 		// Format the body to render diffs correctly
-		formattedBody := formatter.Format(unescapedBody)
+		formattedBody := formatter.Format(fullBody)
 		builder.WriteString(fmt.Sprintf("## %s\n%s\n\n", suggestion.Title, formattedBody))
 	}
 
@@ -461,9 +476,8 @@ func (gr *GitHubReviewPRCmd) Run(cli *CLI) error {
 				),
 			)
 			for _, suggestion := range result.Suggestions {
-				// Unescape newlines from the JSON string body
-				unescapedBody := strings.ReplaceAll(suggestion.Body, "\\n", "\n")
-				formattedBody := formatter.Format(unescapedBody)
+				fullBody := buildSuggestionBody(suggestion)
+				formattedBody := formatter.Format(fullBody)
 				reviewOutput.WriteString(fmt.Sprintf("### %s\n%s\n\n", suggestion.Title, formattedBody))
 			}
 			reviewOutput.WriteString("</details>\n")
@@ -622,9 +636,8 @@ func (d *DiffCmd) Run(cli *CLI) error {
 				"<summary>📝 Review for <strong>%s</strong> (%d issues)</summary>\n\n", file, len(result.Suggestions),
 			)
 			for _, suggestion := range result.Suggestions {
-				// Unescape newlines from the JSON string body
-				unescapedBody := strings.ReplaceAll(suggestion.Body, "\\n", "\n")
-				formattedBody := formatter.Format(unescapedBody)
+				fullBody := buildSuggestionBody(suggestion)
+				formattedBody := formatter.Format(fullBody)
 				fmt.Printf("### %s\n%s\n\n", suggestion.Title, formattedBody)
 			}
 			fmt.Printf("\n</details>\n")
